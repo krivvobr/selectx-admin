@@ -14,19 +14,115 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ArrowLeft, Upload } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
+import { useState } from "react";
+import { useMutation, useQuery } from "@tanstack/react-query";
+import { createProperty } from "@/services/properties";
+import { listCities, listNeighborhoodsByCity } from "@/services/locations";
+import { useAuth } from "@/context/AuthContext";
 
 const AddProperty = () => {
   const navigate = useNavigate();
+  const { isAdmin } = useAuth();
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const [type, setType] = useState<string>("");
+  const [purpose, setPurpose] = useState<string>("");
+  const [furnished, setFurnished] = useState<string>("nao");
+  const [financing, setFinancing] = useState<string>("sim");
+  const [cityId, setCityId] = useState<string>("");
+  const [neighborhoodId, setNeighborhoodId] = useState<string>("");
+
+  const { mutateAsync: addProperty, isLoading } = useMutation({
+    mutationFn: async (payload: any) => {
+      const { data, error } = await createProperty(payload);
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      toast.success("Imóvel cadastrado com sucesso!");
+      navigate("/properties");
+    },
+    onError: (err: any) => {
+      toast.error(err?.message ?? "Erro ao cadastrar imóvel.");
+    },
+  });
+
+  const { data: cities = [], isLoading: loadingCities } = useQuery({
+    queryKey: ["cities"],
+    queryFn: () => listCities(),
+  });
+
+  const { data: neighborhoods = [], isLoading: loadingNeighborhoods } = useQuery({
+    queryKey: ["neighborhoods", cityId],
+    queryFn: () => (cityId ? listNeighborhoodsByCity(cityId) : Promise.resolve([])),
+    enabled: !!cityId,
+  });
+
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    toast.success("Imóvel cadastrado com sucesso!");
-    navigate("/properties");
+    if (!isAdmin) {
+      toast.error("Apenas administradores podem cadastrar imóveis.");
+      return;
+    }
+
+    const form = e.currentTarget;
+    const fd = new FormData(form);
+
+    const getNum = (key: string) => {
+      const val = String(fd.get(key) ?? "").trim();
+      return val ? Number(val) : null;
+    };
+
+    const payload = {
+      code: String(fd.get("code") ?? "").trim(),
+      title: String(fd.get("title") ?? "").trim(),
+      description: String(fd.get("description") ?? "").trim(),
+      type: type as any,
+      purpose: purpose as any,
+      price: Number(String(fd.get("price") ?? "0")),
+      address: String(fd.get("address") ?? "").trim(),
+      city: (() => {
+        const c = cities.find((x) => x.id === cityId);
+        return c ? c.name : "";
+      })(),
+      state: (() => {
+        const c = cities.find((x) => x.id === cityId);
+        return c ? c.state : "";
+      })(),
+      neighborhood: (() => {
+        const n = neighborhoods.find((x) => x.id === neighborhoodId);
+        return n ? n.name : "";
+      })(),
+      area: getNum("area"),
+      bedrooms: getNum("bedrooms"),
+      bathrooms: getNum("bathrooms"),
+      parking: getNum("parking"),
+      furnished: furnished === "sim",
+      financing: financing === "sim",
+      floor: getNum("floor"),
+      status: "disponivel" as const,
+    };
+
+    if (!payload.type || !payload.purpose) {
+      toast.error("Selecione o tipo e a finalidade do imóvel.");
+      return;
+    }
+
+    if (!cityId) {
+      toast.error("Selecione a cidade do imóvel.");
+      return;
+    }
+
+    await addProperty(payload as any);
   };
 
   return (
     <DashboardLayout>
       <div className="p-8">
+        {!isAdmin && (
+          <div className="mb-4 text-sm text-muted-foreground">
+            Você não tem permissão para cadastrar imóveis.
+          </div>
+        )}
         <div className="mb-8 flex items-center gap-4">
           <Button
             variant="ghost"
@@ -58,6 +154,7 @@ const AddProperty = () => {
                     <Label htmlFor="title">Título do Imóvel</Label>
                     <Input
                       id="title"
+                      name="title"
                       placeholder="Ex: Apartamento Moderno - Centro"
                       required
                     />
@@ -66,6 +163,7 @@ const AddProperty = () => {
                     <Label htmlFor="code">Código</Label>
                     <Input
                       id="code"
+                      name="code"
                       placeholder="Ex: SLX001"
                       required
                     />
@@ -76,6 +174,7 @@ const AddProperty = () => {
                   <Label htmlFor="description">Descrição</Label>
                   <Textarea
                     id="description"
+                    name="description"
                     placeholder="Descreva as características, acabamentos, lazer, segurança..."
                     rows={5}
                     required
@@ -85,7 +184,7 @@ const AddProperty = () => {
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="type">Tipo</Label>
-                    <Select required>
+                    <Select value={type} onValueChange={setType} required>
                       <SelectTrigger id="type">
                         <SelectValue placeholder="Selecione" />
                       </SelectTrigger>
@@ -100,7 +199,7 @@ const AddProperty = () => {
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="purpose">Finalidade</Label>
-                    <Select required>
+                    <Select value={purpose} onValueChange={setPurpose} required>
                       <SelectTrigger id="purpose">
                         <SelectValue placeholder="Selecione" />
                       </SelectTrigger>
@@ -114,6 +213,7 @@ const AddProperty = () => {
                     <Label htmlFor="price">Preço</Label>
                     <Input
                       id="price"
+                      name="price"
                       placeholder="Ex: 850000"
                       type="number"
                       required
@@ -134,27 +234,75 @@ const AddProperty = () => {
                     <Label htmlFor="address">Endereço</Label>
                     <Input
                       id="address"
+                      name="address"
                       placeholder="Rua, número"
                       required
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="neighborhood">Bairro</Label>
-                    <Input
-                      id="neighborhood"
-                      placeholder="Nome do bairro"
-                      required
-                    />
+                    <Label htmlFor="neighborhoodSelect">Bairro</Label>
+                    <Select
+                      value={neighborhoodId}
+                      onValueChange={setNeighborhoodId}
+                      disabled={!cityId || loadingNeighborhoods}
+                    >
+                      <SelectTrigger id="neighborhoodSelect">
+                        <SelectValue
+                          placeholder={
+                            !cityId
+                              ? "Selecione primeiro a cidade"
+                              : loadingNeighborhoods
+                              ? "Carregando..."
+                              : "Selecione o bairro (opcional)"
+                          }
+                        />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {neighborhoods.map((n) => (
+                          <SelectItem key={n.id} value={n.id}>
+                            {n.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    {!loadingNeighborhoods && cityId && neighborhoods.length === 0 && (
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Nenhum bairro cadastrado para esta cidade.
+                      </p>
+                    )}
                   </div>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="city">Cidade</Label>
-                    <Input id="city" placeholder="Cidade" required />
+                    <Label htmlFor="citySelect">Cidade</Label>
+                    <Select value={cityId} onValueChange={(v) => { setCityId(v); setNeighborhoodId(""); }}>
+                      <SelectTrigger id="citySelect">
+                        <SelectValue placeholder={loadingCities ? "Carregando..." : "Selecione a cidade"} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {cities.map((c) => (
+                          <SelectItem key={c.id} value={c.id}>
+                            {c.name} - {c.state}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    {!loadingCities && cities.length === 0 && (
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Nenhuma cidade cadastrada. Cadastre em "Cidades" no menu.
+                      </p>
+                    )}
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="state">Estado</Label>
-                    <Input id="state" placeholder="UF" required />
+                    <Label>Estado (derivado)</Label>
+                    <Input
+                      value={(() => {
+                        const c = cities.find((x) => x.id === cityId);
+                        return c ? c.state : "";
+                      })()}
+                      readOnly
+                      placeholder="Selecione a cidade"
+                    />
                   </div>
                 </div>
               </CardContent>
@@ -171,6 +319,7 @@ const AddProperty = () => {
                     <Label htmlFor="area">Área Útil (m²)</Label>
                     <Input
                       id="area"
+                      name="area"
                       type="number"
                       placeholder="120"
                       required
@@ -178,22 +327,22 @@ const AddProperty = () => {
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="bedrooms">Quartos</Label>
-                    <Input id="bedrooms" type="number" placeholder="3" />
+                    <Input id="bedrooms" name="bedrooms" type="number" placeholder="3" />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="bathrooms">Banheiros</Label>
-                    <Input id="bathrooms" type="number" placeholder="2" />
+                    <Input id="bathrooms" name="bathrooms" type="number" placeholder="2" />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="parking">Vagas</Label>
-                    <Input id="parking" type="number" placeholder="2" />
+                    <Input id="parking" name="parking" type="number" placeholder="2" />
                   </div>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="furnished">Mobiliado</Label>
-                    <Select>
+                    <Select value={furnished} onValueChange={setFurnished}>
                       <SelectTrigger id="furnished">
                         <SelectValue placeholder="Selecione" />
                       </SelectTrigger>
@@ -205,7 +354,7 @@ const AddProperty = () => {
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="financing">Aceita Financiamento</Label>
-                    <Select>
+                    <Select value={financing} onValueChange={setFinancing}>
                       <SelectTrigger id="financing">
                         <SelectValue placeholder="Selecione" />
                       </SelectTrigger>
@@ -217,7 +366,7 @@ const AddProperty = () => {
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="floor">Andar</Label>
-                    <Input id="floor" placeholder="Ex: 5" />
+                    <Input id="floor" name="floor" placeholder="Ex: 5" />
                   </div>
                 </div>
               </CardContent>
@@ -250,7 +399,9 @@ const AddProperty = () => {
               >
                 Cancelar
               </Button>
-              <Button type="submit">Salvar Imóvel</Button>
+              <Button type="submit" disabled={isLoading || loadingCities || !isAdmin}>
+                {isLoading ? "Salvando..." : "Salvar Imóvel"}
+              </Button>
             </div>
           </div>
         </form>

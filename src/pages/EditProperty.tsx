@@ -14,37 +14,88 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ArrowLeft, Upload } from "lucide-react";
 import { useNavigate, useParams } from "react-router-dom";
 import { toast } from "sonner";
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
+import { useQuery, useMutation } from "@tanstack/react-query";
+import { getPropertyById, updateProperty, type Property } from "@/services/properties";
 
 const EditProperty = () => {
   const navigate = useNavigate();
   const { id } = useParams();
-  
-  // Mock data - in a real app, this would fetch from database
-  const [propertyData, setPropertyData] = useState({
-    title: "Apartamento Moderno - Centro",
-    code: "SLX001",
-    description: "Apartamento com acabamento moderno, próximo a comércios e serviços.",
-    type: "apartamento",
-    purpose: "venda",
-    price: "850000",
-    address: "Rua das Flores, 123",
-    neighborhood: "Centro",
-    city: "São Paulo",
-    state: "SP",
-    area: "120",
-    bedrooms: "3",
-    bathrooms: "2",
-    parking: "2",
-    furnished: "nao",
-    financing: "sim",
-    floor: "5"
+
+  const [type, setType] = useState<string>("");
+  const [purpose, setPurpose] = useState<string>("");
+  const [furnished, setFurnished] = useState<string>("nao");
+  const [financing, setFinancing] = useState<string>("sim");
+
+  const { data, isLoading } = useQuery({
+    queryKey: ["property", id],
+    enabled: !!id,
+    queryFn: async () => {
+      const { data, error } = await getPropertyById(id!);
+      if (error) throw error;
+      return data as Property;
+    },
   });
 
-  const handleSubmit = (e: React.FormEvent) => {
+  useEffect(() => {
+    if (data) {
+      setType(data.type);
+      setPurpose(data.purpose);
+      setFurnished(data.furnished ? "sim" : "nao");
+      setFinancing(data.financing ? "sim" : "nao");
+    }
+  }, [data]);
+
+  const { mutateAsync: saveProperty, isLoading: saving } = useMutation({
+    mutationFn: async (payload: any) => {
+      const { error } = await updateProperty(id!, payload);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Imóvel atualizado com sucesso!");
+      navigate("/properties");
+    },
+    onError: (err: any) => {
+      toast.error(err?.message ?? "Erro ao atualizar imóvel.");
+    },
+  });
+
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    toast.success("Imóvel atualizado com sucesso!");
-    navigate("/properties");
+    if (!data) return;
+
+    const fd = new FormData(e.currentTarget);
+    const getNum = (key: string) => {
+      const val = String(fd.get(key) ?? "").trim();
+      return val ? Number(val) : null;
+    };
+
+    const payload = {
+      code: String(fd.get("code") ?? data.code).trim(),
+      title: String(fd.get("title") ?? data.title).trim(),
+      description: String(fd.get("description") ?? data.description ?? "").trim(),
+      type: type as any,
+      purpose: purpose as any,
+      price: Number(String(fd.get("price") ?? String(data.price))),
+      address: String(fd.get("address") ?? data.address ?? "").trim(),
+      neighborhood: String(fd.get("neighborhood") ?? data.neighborhood ?? "").trim(),
+      city: String(fd.get("city") ?? data.city ?? "").trim(),
+      state: String(fd.get("state") ?? data.state ?? "").trim(),
+      area: getNum("area"),
+      bedrooms: getNum("bedrooms"),
+      bathrooms: getNum("bathrooms"),
+      parking: getNum("parking"),
+      furnished: furnished === "sim",
+      financing: financing === "sim",
+      floor: getNum("floor"),
+    };
+
+    if (!payload.type || !payload.purpose) {
+      toast.error("Selecione o tipo e a finalidade do imóvel.");
+      return;
+    }
+
+    await saveProperty(payload);
   };
 
   return (
@@ -68,6 +119,9 @@ const EditProperty = () => {
           </div>
         </div>
 
+        {isLoading || !data ? (
+          <div className="p-8">Carregando dados do imóvel...</div>
+        ) : (
         <form onSubmit={handleSubmit}>
           <div className="grid gap-6">
             {/* Basic Information */}
@@ -82,7 +136,7 @@ const EditProperty = () => {
                     <Input
                       id="title"
                       placeholder="Ex: Apartamento Moderno - Centro"
-                      defaultValue={propertyData.title}
+                      defaultValue={data.title}
                       required
                     />
                   </div>
@@ -91,7 +145,7 @@ const EditProperty = () => {
                     <Input
                       id="code"
                       placeholder="Ex: SLX001"
-                      defaultValue={propertyData.code}
+                      defaultValue={data.code}
                       required
                     />
                   </div>
@@ -103,7 +157,7 @@ const EditProperty = () => {
                     id="description"
                     placeholder="Descreva as características, acabamentos, lazer, segurança..."
                     rows={5}
-                    defaultValue={propertyData.description}
+                    defaultValue={data.description ?? ""}
                     required
                   />
                 </div>
@@ -111,7 +165,7 @@ const EditProperty = () => {
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="type">Tipo</Label>
-                    <Select defaultValue={propertyData.type} required>
+                    <Select value={type} onValueChange={setType} required>
                       <SelectTrigger id="type">
                         <SelectValue placeholder="Selecione" />
                       </SelectTrigger>
@@ -126,7 +180,7 @@ const EditProperty = () => {
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="purpose">Finalidade</Label>
-                    <Select defaultValue={propertyData.purpose} required>
+                    <Select value={purpose} onValueChange={setPurpose} required>
                       <SelectTrigger id="purpose">
                         <SelectValue placeholder="Selecione" />
                       </SelectTrigger>
@@ -142,7 +196,7 @@ const EditProperty = () => {
                       id="price"
                       placeholder="Ex: 850000"
                       type="number"
-                      defaultValue={propertyData.price}
+                      defaultValue={String(data.price)}
                       required
                     />
                   </div>
@@ -162,7 +216,7 @@ const EditProperty = () => {
                     <Input
                       id="address"
                       placeholder="Rua, número"
-                      defaultValue={propertyData.address}
+                      defaultValue={data.address ?? ""}
                       required
                     />
                   </div>
@@ -171,7 +225,7 @@ const EditProperty = () => {
                     <Input
                       id="neighborhood"
                       placeholder="Nome do bairro"
-                      defaultValue={propertyData.neighborhood}
+                      defaultValue={data.neighborhood ?? ""}
                       required
                     />
                   </div>
@@ -182,7 +236,7 @@ const EditProperty = () => {
                     <Input 
                       id="city" 
                       placeholder="Cidade" 
-                      defaultValue={propertyData.city}
+                      defaultValue={data.city ?? ""}
                       required 
                     />
                   </div>
@@ -191,7 +245,7 @@ const EditProperty = () => {
                     <Input 
                       id="state" 
                       placeholder="UF" 
-                      defaultValue={propertyData.state}
+                      defaultValue={data.state ?? ""}
                       required 
                     />
                   </div>
@@ -212,7 +266,7 @@ const EditProperty = () => {
                       id="area"
                       type="number"
                       placeholder="120"
-                      defaultValue={propertyData.area}
+                      defaultValue={data.area ?? undefined}
                       required
                     />
                   </div>
@@ -222,7 +276,7 @@ const EditProperty = () => {
                       id="bedrooms" 
                       type="number" 
                       placeholder="3"
-                      defaultValue={propertyData.bedrooms}
+                      defaultValue={data.bedrooms ?? undefined}
                     />
                   </div>
                   <div className="space-y-2">
@@ -231,7 +285,7 @@ const EditProperty = () => {
                       id="bathrooms" 
                       type="number" 
                       placeholder="2"
-                      defaultValue={propertyData.bathrooms}
+                      defaultValue={data.bathrooms ?? undefined}
                     />
                   </div>
                   <div className="space-y-2">
@@ -240,7 +294,7 @@ const EditProperty = () => {
                       id="parking" 
                       type="number" 
                       placeholder="2"
-                      defaultValue={propertyData.parking}
+                      defaultValue={data.parking ?? undefined}
                     />
                   </div>
                 </div>
@@ -248,7 +302,7 @@ const EditProperty = () => {
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="furnished">Mobiliado</Label>
-                    <Select defaultValue={propertyData.furnished}>
+                    <Select value={furnished} onValueChange={setFurnished}>
                       <SelectTrigger id="furnished">
                         <SelectValue placeholder="Selecione" />
                       </SelectTrigger>
@@ -260,7 +314,7 @@ const EditProperty = () => {
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="financing">Aceita Financiamento</Label>
-                    <Select defaultValue={propertyData.financing}>
+                    <Select value={financing} onValueChange={setFinancing}>
                       <SelectTrigger id="financing">
                         <SelectValue placeholder="Selecione" />
                       </SelectTrigger>
@@ -275,7 +329,7 @@ const EditProperty = () => {
                     <Input 
                       id="floor" 
                       placeholder="Ex: 5"
-                      defaultValue={propertyData.floor}
+                      defaultValue={data.floor ?? undefined}
                     />
                   </div>
                 </div>
@@ -309,10 +363,13 @@ const EditProperty = () => {
               >
                 Cancelar
               </Button>
-              <Button type="submit">Atualizar Imóvel</Button>
+              <Button type="submit" disabled={saving}>
+                {saving ? "Salvando..." : "Atualizar Imóvel"}
+              </Button>
             </div>
           </div>
         </form>
+        )}
       </div>
     </DashboardLayout>
   );

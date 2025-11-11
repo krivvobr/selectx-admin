@@ -1,7 +1,7 @@
 import { ReactNode } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
-import { Home, Building2, Users } from "lucide-react";
+import { Home, Building2, Users, MapPin, Map } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/context/AuthContext";
 
@@ -12,6 +12,8 @@ interface DashboardLayoutProps {
 const navigation = [
   { name: "Dashboard", href: "/", icon: Home },
   { name: "Imóveis", href: "/properties", icon: Building2 },
+  { name: "Cidades", href: "/cities", icon: MapPin },
+  { name: "Bairros", href: "/neighborhoods", icon: Map },
   { name: "Leads", href: "/leads", icon: Users },
 ];
 

@@ -1,6 +1,6 @@
 import { supabase } from "@/lib/supabaseClient";
 
-export type PropertyType = "apartamento" | "casa" | "cobertura" | "comercial";
+export type PropertyType = "apartamento" | "casa" | "cobertura" | "comercial" | "terreno";
 export type PropertyPurpose = "venda" | "locacao";
 export type PropertyStatus = "disponivel" | "vendido" | "alugado" | "inativo";
 

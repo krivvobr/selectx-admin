@@ -9,6 +9,8 @@ import Dashboard from "./pages/Dashboard";
 import Properties from "./pages/Properties";
 import AddProperty from "./pages/AddProperty";
 import EditProperty from "./pages/EditProperty";
+import Cities from "./pages/Cities";
+import Neighborhoods from "./pages/Neighborhoods";
 import Leads from "./pages/Leads";
 import NotFound from "./pages/NotFound";
 import Login from "./pages/Login";
@@ -53,6 +55,22 @@ const App = () => (
               element={
                 <ProtectedRoute>
                   <EditProperty />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/cities"
+              element={
+                <ProtectedRoute>
+                  <Cities />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/neighborhoods"
+              element={
+                <ProtectedRoute>
+                  <Neighborhoods />
                 </ProtectedRoute>
               }
             />

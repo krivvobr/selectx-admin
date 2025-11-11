@@ -23,6 +23,16 @@ do $$ begin
   end if;
 end $$;
 
+-- Ensure 'terreno' exists in property_type enum (idempotent)
+do $$ begin
+  if exists (select 1 from pg_type t join pg_enum e on t.oid = e.enumtypid where t.typname = 'property_type' and e.enumlabel = 'terreno') then
+    -- already exists
+    null;
+  else
+    alter type public.property_type add value 'terreno';
+  end if;
+end $$;
+
 -- Utility: auto-update updated_at
 create or replace function public.set_updated_at() returns trigger
 language plpgsql as $$
@@ -96,6 +106,17 @@ create trigger trg_handle_new_user
 after insert on auth.users
 for each row execute function public.handle_new_user();
 
+-- Helper: check if current user is admin without triggering RLS recursion
+create or replace function public.is_admin() returns boolean
+stable
+security definer set search_path = public
+language sql as $$
+  select exists (
+    select 1 from public.profiles p
+    where p.id = auth.uid() and p.role = 'admin'
+  );
+$$;
+
 -- Indexes
 create index if not exists idx_properties_status on public.properties(status);
 create index if not exists idx_properties_city on public.properties(city);
@@ -105,10 +126,34 @@ create index if not exists idx_leads_property_id on public.leads(property_id);
 create index if not exists idx_leads_status on public.leads(status);
 create index if not exists idx_leads_created_at on public.leads(created_at);
 
+-- Cities and Neighborhoods
+create table if not exists public.cities (
+  id uuid primary key default gen_random_uuid(),
+  name text not null,
+  state text not null,
+  created_at timestamptz default now(),
+  unique(name, state)
+);
+
+create table if not exists public.neighborhoods (
+  id uuid primary key default gen_random_uuid(),
+  city_id uuid not null references public.cities(id) on delete cascade,
+  name text not null,
+  created_at timestamptz default now(),
+  unique(city_id, name)
+);
+
+create index if not exists idx_cities_name on public.cities(name);
+create index if not exists idx_cities_state on public.cities(state);
+create index if not exists idx_neighborhoods_city_id on public.neighborhoods(city_id);
+create index if not exists idx_neighborhoods_name on public.neighborhoods(name);
+
 -- RLS policies
 alter table public.properties enable row level security;
 alter table public.leads enable row level security;
 alter table public.profiles enable row level security;
+alter table public.cities enable row level security;
+alter table public.neighborhoods enable row level security;
 
 -- Properties: read for authenticated users
 drop policy if exists "read authenticated - properties" on public.properties;
@@ -119,19 +164,69 @@ for select using (auth.role() = 'authenticated');
 drop policy if exists "insert admin - properties" on public.properties;
 create policy "insert admin - properties" on public.properties
 for insert with check (
-  exists (select 1 from public.profiles p where p.id = auth.uid() and p.role = 'admin')
+  public.is_admin()
 );
 drop policy if exists "update admin - properties" on public.properties;
 create policy "update admin - properties" on public.properties
 for update using (
-  exists (select 1 from public.profiles p where p.id = auth.uid() and p.role = 'admin')
+  public.is_admin()
 ) with check (
-  exists (select 1 from public.profiles p where p.id = auth.uid() and p.role = 'admin')
+  public.is_admin()
 );
 drop policy if exists "delete admin - properties" on public.properties;
 create policy "delete admin - properties" on public.properties
 for delete using (
-  exists (select 1 from public.profiles p where p.id = auth.uid() and p.role = 'admin')
+  public.is_admin()
+);
+
+-- Cities: read for authenticated; write for admins
+drop policy if exists "read authenticated - cities" on public.cities;
+create policy "read authenticated - cities" on public.cities
+for select using (auth.role() = 'authenticated');
+
+drop policy if exists "insert admin - cities" on public.cities;
+create policy "insert admin - cities" on public.cities
+for insert with check (
+  public.is_admin()
+);
+
+drop policy if exists "update admin - cities" on public.cities;
+create policy "update admin - cities" on public.cities
+for update using (
+  public.is_admin()
+) with check (
+  public.is_admin()
+);
+
+drop policy if exists "delete admin - cities" on public.cities;
+create policy "delete admin - cities" on public.cities
+for delete using (
+  public.is_admin()
+);
+
+-- Neighborhoods: read for authenticated; write for admins
+drop policy if exists "read authenticated - neighborhoods" on public.neighborhoods;
+create policy "read authenticated - neighborhoods" on public.neighborhoods
+for select using (auth.role() = 'authenticated');
+
+drop policy if exists "insert admin - neighborhoods" on public.neighborhoods;
+create policy "insert admin - neighborhoods" on public.neighborhoods
+for insert with check (
+  public.is_admin()
+);
+
+drop policy if exists "update admin - neighborhoods" on public.neighborhoods;
+create policy "update admin - neighborhoods" on public.neighborhoods
+for update using (
+  public.is_admin()
+) with check (
+  public.is_admin()
+);
+
+drop policy if exists "delete admin - neighborhoods" on public.neighborhoods;
+create policy "delete admin - neighborhoods" on public.neighborhoods
+for delete using (
+  public.is_admin()
 );
 
 -- Leads: readable by authenticated; insert allowed publicly (website form)
@@ -146,24 +241,24 @@ for insert with check (true);
 drop policy if exists "update admin - leads" on public.leads;
 create policy "update admin - leads" on public.leads
 for update using (
-  exists (select 1 from public.profiles p where p.id = auth.uid() and p.role = 'admin')
+  public.is_admin()
 ) with check (
-  exists (select 1 from public.profiles p where p.id = auth.uid() and p.role = 'admin')
+  public.is_admin()
 );
 
 -- Profiles: user can read own profile; admins can read/update all
 drop policy if exists "read own or admin - profiles" on public.profiles;
 create policy "read own or admin - profiles" on public.profiles
 for select using (
-  id = auth.uid() or exists (select 1 from public.profiles p where p.id = auth.uid() and p.role = 'admin')
+  id = auth.uid() or public.is_admin()
 );
 
 drop policy if exists "admin update - profiles" on public.profiles;
 create policy "admin update - profiles" on public.profiles
 for update using (
-  exists (select 1 from public.profiles p where p.id = auth.uid() and p.role = 'admin')
+  public.is_admin()
 ) with check (
-  exists (select 1 from public.profiles p where p.id = auth.uid() and p.role = 'admin')
+  public.is_admin()
 );
 
 -- Optional seed data for testing
@@ -191,3 +286,17 @@ insert into public.leads (name, phone, email, property_id, status)
 select 'Maria Santos','(11) 97654-3210','maria.santos@email.com', p.id, 'contacted'
 from public.properties p where p.code = 'SLX002'
 on conflict do nothing;
+
+-- Optional seed cities/neighborhoods
+insert into public.cities (name, state) values
+  ('São Paulo','SP'),
+  ('Campinas','SP'),
+  ('Rio de Janeiro','RJ')
+on conflict (name, state) do nothing;
+
+insert into public.neighborhoods (city_id, name)
+select c.id, n.name from (
+  values ('São Paulo','Centro'),('São Paulo','Jardins'),('Campinas','Cambuí')
+) as n(city, name)
+join public.cities c on c.name = n.city
+on conflict (city_id, name) do nothing;
