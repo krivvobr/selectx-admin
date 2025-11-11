@@ -123,6 +123,22 @@ const mutation = useMutation({
   - `leads`: leitura para autenticados; inserção pública (site).
   - `profiles`: usuário lê o próprio perfil; `admin` lê/atualiza todos.
 
+### Login do Painel (somente equipe)
+
+- Este painel não possui registro de usuários na UI. Cadastre os membros diretamente no Supabase (Auth > Users) e defina `profiles.role='admin'` para eles.
+- Páginas adicionadas:
+  - `src/pages/Login.tsx`: tela de login (email/senha) usando Supabase Auth.
+  - `src/context/AuthContext.tsx`: provider de sessão com `signIn`/`signOut`.
+  - `src/components/ProtectedRoute.tsx`: protege as rotas do painel.
+- Rotas protegidas em `src/App.tsx`: todas as páginas do painel exigem sessão. Usuários não autenticados são redirecionados para `/login`.
+- Botão “Sair” está disponível no `DashboardLayout` (sidebar) para finalizar a sessão.
+
+Passos para autenticação funcionar:
+1. Configure `.env.local` com `VITE_SUPABASE_URL` e `VITE_SUPABASE_ANON_KEY`.
+2. Cadastre usuários em Supabase Auth e (opcionalmente) promova-os a `admin`:
+   - `update public.profiles set role='admin' where id='<AUTH_USER_ID>'`.
+3. Rode o projeto e faça login com email/senha.
+
 ### Imagens
 
 Imagens serão configuradas depois. Recomenda-se criar um bucket de Storage `properties` e gravar o caminho do arquivo na tabela (ou usar uma tabela `property_images`).

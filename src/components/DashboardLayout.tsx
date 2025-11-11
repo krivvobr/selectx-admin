@@ -1,7 +1,9 @@
 import { ReactNode } from "react";
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { Home, Building2, Users } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { useAuth } from "@/context/AuthContext";
 
 interface DashboardLayoutProps {
   children: ReactNode;
@@ -15,6 +17,8 @@ const navigation = [
 
 const DashboardLayout = ({ children }: DashboardLayoutProps) => {
   const location = useLocation();
+  const navigate = useNavigate();
+  const { signOut } = useAuth();
 
   return (
     <div className="flex min-h-screen bg-dashboard-bg">
@@ -48,10 +52,18 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
           })}
         </nav>
 
-        <div className="p-4 border-t border-border">
-          <p className="text-xs text-muted-foreground text-center">
-            © 2025 Select-X
-          </p>
+        <div className="p-4 border-t border-border space-y-3">
+          <Button
+            variant="outline"
+            className="w-full"
+            onClick={async () => {
+              await signOut();
+              navigate("/login");
+            }}
+          >
+            Sair
+          </Button>
+          <p className="text-xs text-muted-foreground text-center">© 2025 Select-X</p>
         </div>
       </aside>
 
