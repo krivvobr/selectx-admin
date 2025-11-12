@@ -11,21 +11,29 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   useEffect(() => {
     const handleAuthStateChange = async (session: Session | null) => {
+      // Atualiza sessão e usuário imediatamente
       setSession(session);
       const currentUser = session?.user;
       setUser(currentUser ?? null);
 
+      // Não bloquear a UI esperando a consulta de perfil/role
+      setLoading(false);
+
+      // Buscar role em background; caso falhe, manter role como null
       if (currentUser) {
-        const { data: profile } = await supabase
-          .from("profiles")
-          .select("role")
-          .eq("id", currentUser.id)
-          .single();
-        setRole((profile?.role as "admin" | "agent" | "viewer") ?? null);
+        try {
+          const { data: profile } = await supabase
+            .from("profiles")
+            .select("role")
+            .eq("id", currentUser.id)
+            .single();
+          setRole((profile?.role as "admin" | "agent" | "viewer") ?? null);
+        } catch (_err) {
+          setRole(null);
+        }
       } else {
         setRole(null);
       }
-      setLoading(false);
     };
 
     const fetchSession = async () => {
