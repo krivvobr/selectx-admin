@@ -448,10 +448,15 @@ const AddProperty = () => {
               <CardContent>
                 <ImageKitUpload
                   onSuccess={(url) => {
+                    if (images.length >= 20) {
+                      toast.error("Máximo de 20 imagens atingido!");
+                      return;
+                    }
                     if (images.length === 0) {
                       setCoverImage(url);
                     }
                     setImages((prev) => [...prev, url]);
+                    toast.success("Imagem enviada com sucesso!");
                   }}
                   onError={(error) => {
                     console.error(error);
