@@ -1,3 +1,7 @@
+import {
+  listCities,
+  listNeighborhoodsByCity,
+} from "@/services/locations";
 import DashboardLayout from "@/components/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -63,6 +67,21 @@ const EditProperty = () => {
   const [financing, setFinancing] = useState<string>("sim");
   const [price, setPrice] = useState("");
   const [area, setArea] = useState("");
+  const [cities, setCities] = useState<any[]>([]);
+  const [neighborhoods, setNeighborhoods] = useState<any[]>([]);
+  const [selectedCity, setSelectedCity] = useState<string | undefined>();
+  const [selectedNeighborhood, setSelectedNeighborhood] = useState<
+    string | undefined
+  >();
+
+  const { data: citiesData } = useQuery({
+    queryKey: ["cities"],
+    queryFn: async () => {
+      const data = await listCities();
+      setCities(data);
+      return data;
+    },
+  });
 
   const { data, isLoading } = useQuery({
     queryKey: ["property", id],
@@ -73,6 +92,32 @@ const EditProperty = () => {
       return data as Property;
     },
   });
+
+  useEffect(() => {
+    if (data && citiesData) {
+      const city = citiesData.find((c) => c.name === data.city);
+      if (city) {
+        setSelectedCity(city.id);
+      }
+    }
+  }, [data, citiesData]);
+
+  useEffect(() => {
+    if (selectedCity) {
+      listNeighborhoodsByCity(selectedCity).then((data) => {
+        setNeighborhoods(data);
+        if (data && data.length > 0) {
+          const neighborhood = data.find((n) => n.name === data.neighborhood);
+          if (neighborhood) {
+            setSelectedNeighborhood(neighborhood.id);
+          }
+        }
+      });
+    } else {
+      setNeighborhoods([]);
+      setSelectedNeighborhood(undefined);
+    }
+  }, [selectedCity, data]);
 
   useEffect(() => {
     if (data) {
@@ -120,18 +165,23 @@ const EditProperty = () => {
     };
 
     const unmaskedPrice = price.replace(/\D/g, "");
+    const city = cities.find((c) => c.id === selectedCity);
+    const neighborhood = neighborhoods.find(
+      (n) => n.id === selectedNeighborhood
+    );
 
     const payload = {
       code: String(fd.get("code") ?? data.code).trim(),
       title: String(fd.get("title") ?? data.title).trim(),
-      description: String(fd.get("description") ?? data.description ?? "").trim(),
+      description: String(fd.get("description") ?? data.description ?? "")
+        .trim(),
       type: type as any,
       purpose: purpose as any,
       price: Number(unmaskedPrice) / 100,
       address: String(fd.get("address") ?? data.address ?? "").trim(),
-      neighborhood: String(fd.get("neighborhood") ?? data.neighborhood ?? "").trim(),
-      city: String(fd.get("city") ?? data.city ?? "").trim(),
-      state: String(fd.get("state") ?? data.state ?? "").trim(),
+      neighborhood: neighborhood?.name ?? "",
+      city: city?.name ?? "",
+      state: city?.state ?? "",
       area: getNum("area"),
       bedrooms: getNum("bedrooms"),
       bathrooms: getNum("bathrooms"),
@@ -278,35 +328,59 @@ const EditProperty = () => {
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="neighborhood">Bairro</Label>
-                    <Input
-                      id="neighborhood"
-                      name="neighborhood"
-                      placeholder="Nome do bairro"
-                      defaultValue={data.neighborhood ?? ""}
+                    <Label htmlFor="city">Cidade</Label>
+                    <Select
+                      value={selectedCity}
+                      onValueChange={setSelectedCity}
                       required
-                    />
+                    >
+                      <SelectTrigger id="city">
+                        <SelectValue placeholder="Selecione a cidade" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {cities.map((city) => (
+                          <SelectItem key={city.id} value={city.id}>
+                            {city.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="city">Cidade</Label>
-                    <Input 
-                      id="city" 
-                      name="city"
-                      placeholder="Cidade" 
-                      defaultValue={data.city ?? ""}
-                      required 
-                    />
+                    <Label htmlFor="neighborhood">Bairro</Label>
+                    <Select
+                      value={selectedNeighborhood}
+                      onValueChange={setSelectedNeighborhood}
+                      required
+                    >
+                      <SelectTrigger id="neighborhood">
+                        <SelectValue placeholder="Selecione o bairro" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {neighborhoods.map((neighborhood) => (
+                          <SelectItem
+                            key={neighborhood.id}
+                            value={neighborhood.id}
+                          >
+                            {neighborhood.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="state">Estado</Label>
-                    <Input 
-                      id="state" 
+                    <Input
+                      id="state"
                       name="state"
-                      placeholder="UF" 
-                      defaultValue={data.state ?? ""}
-                      required 
+                      placeholder="UF"
+                      value={
+                        cities.find((c) => c.id === selectedCity)?.state ?? ""
+                      }
+                      readOnly
+                      required
                     />
                   </div>
                 </div>
