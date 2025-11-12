@@ -320,7 +320,7 @@ const EditProperty = () => {
                     <Select
                       value={selectedCity}
                       onValueChange={setSelectedCity}
-                      required
+                      
                     >
                       <SelectTrigger id="city">
                         <SelectValue placeholder="Selecione a cidade" />
