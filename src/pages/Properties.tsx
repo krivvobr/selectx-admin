@@ -22,6 +22,7 @@ import { useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { listProperties, deleteProperty, type Property } from "@/services/properties";
 import { toast } from "sonner";
+import { useAuth } from "@/hooks/use-auth";
 
 function formatCurrencyBR(value?: number | null) {
   if (value == null) return "-";
@@ -83,14 +84,17 @@ function labelStatus(status?: Property["status"]) {
 const Properties = () => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const { session } = useAuth();
 
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isError, error } = useQuery({
     queryKey: ["properties"],
     queryFn: async () => {
       const { data, error } = await listProperties();
       if (error) throw error;
       return data as Property[];
     },
+    enabled: !!session,
+    retry: false,
   });
 
   const { mutateAsync: removeProperty, isLoading: deleting } = useMutation({
@@ -186,6 +190,12 @@ const Properties = () => {
                 <TableRow>
                   <TableCell colSpan={10} className="text-center py-8 text-muted-foreground">
                     Carregando imóveis...
+                  </TableCell>
+                </TableRow>
+              ) : isError ? (
+                <TableRow>
+                  <TableCell colSpan={10} className="text-center py-8 text-destructive">
+                    Erro ao carregar imóveis: {error instanceof Error ? error.message : "Tente novamente mais tarde."}
                   </TableCell>
                 </TableRow>
               ) : !data || data?.length === 0 ? (
