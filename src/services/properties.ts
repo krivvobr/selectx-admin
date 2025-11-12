@@ -50,3 +50,20 @@ export async function updateProperty(id: string, input: Partial<PropertyInput>) 
 export async function deleteProperty(id: string) {
   return supabase.from("properties").delete().eq("id", id);
 }
+
+// Dashboard helpers
+export async function countProperties() {
+  const { count, error } = await supabase
+    .from("properties")
+    .select("*", { count: "exact", head: true });
+  if (error) throw error;
+  return count ?? 0;
+}
+
+export async function listRecentProperties(limit = 5) {
+  return supabase
+    .from("properties")
+    .select("*")
+    .order("created_at", { ascending: false })
+    .limit(limit);
+}

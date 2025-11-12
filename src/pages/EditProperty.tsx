@@ -24,14 +24,21 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { getPropertyById, updateProperty, type Property } from "@/services/properties";
 
 const formatCurrency = (value: string | number) => {
-  if (typeof value === 'number') {
-    value = value.toString();
+  if (value == null || value === "") return "";
+  // Quando vem do banco (number), já está em reais — não dividir por 100
+  if (typeof value === "number") {
+    return new Intl.NumberFormat("pt-BR", {
+      style: "currency",
+      currency: "BRL",
+      minimumFractionDigits: 2,
+    }).format(value);
   }
-  if (!value) return "";
-  let onlyNumbers = value.replace(/\D/g, "");
+
+  // Para digitação do usuário (string), usar máscara em centavos
+  const onlyNumbers = value.replace(/\D/g, "");
   if (onlyNumbers === "") return "";
 
-  let intValue = parseInt(onlyNumbers, 10);
+  const intValue = parseInt(onlyNumbers, 10);
   if (isNaN(intValue)) return "";
 
   return new Intl.NumberFormat("pt-BR", {
@@ -42,14 +49,20 @@ const formatCurrency = (value: string | number) => {
 };
 
 const formatNumber = (value: string | number) => {
-  if (typeof value === 'number') {
-    value = value.toString();
+  if (value == null || value === "") return "";
+  // Quando vem do banco (number), já é o valor final — não dividir por 100
+  if (typeof value === "number") {
+    return value.toLocaleString("pt-BR", {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    });
   }
-  if (!value) return "";
-  let onlyNumbers = value.replace(/\D/g, "");
+
+  // Para digitação do usuário (string), aplicar máscara em centavos
+  const onlyNumbers = value.replace(/\D/g, "");
   if (onlyNumbers === "") return "";
 
-  let floatValue = parseFloat(onlyNumbers) / 100;
+  const floatValue = parseFloat(onlyNumbers) / 100;
   if (isNaN(floatValue)) return "";
 
   return floatValue.toLocaleString("pt-BR", {

@@ -5,50 +5,44 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Search, ExternalLink, Phone, Mail } from "lucide-react";
 import { Button } from "@/components/ui/button";
-
-// Mock data - will be replaced with real data from database
-const mockLeads = [
-  {
-    id: 1,
-    name: "João Silva",
-    phone: "(11) 98765-4321",
-    email: "joao.silva@email.com",
-    propertyName: "Apartamento 3 quartos no Centro",
-    propertyUrl: "/property/123",
-    date: "2025-11-10",
-    status: "new"
-  },
-  {
-    id: 2,
-    name: "Maria Santos",
-    phone: "(11) 97654-3210",
-    email: "maria.santos@email.com",
-    propertyName: "Casa 4 quartos no Jardim Paulista",
-    propertyUrl: "/property/456",
-    date: "2025-11-09",
-    status: "contacted"
-  },
-  {
-    id: 3,
-    name: "Pedro Oliveira",
-    phone: "(11) 96543-2109",
-    email: "pedro.oliveira@email.com",
-    propertyName: "Cobertura Duplex na Vila Madalena",
-    propertyUrl: "/property/789",
-    date: "2025-11-08",
-    status: "new"
-  },
-];
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { listLeads, updateLeadStatus } from "@/services/leads";
+import { useNavigate } from "react-router-dom";
+import { toast } from "@/hooks/use-toast";
 
 const Leads = () => {
+  const queryClient = useQueryClient();
+  const navigate = useNavigate();
+
+  const { data, isLoading } = useQuery({
+    queryKey: ["leads"],
+    queryFn: async () => {
+      const { data, error } = await listLeads();
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+
+  const { mutateAsync: markContacted, isLoading: updating } = useMutation({
+    mutationFn: async (leadId: string) => {
+      const { error } = await updateLeadStatus(leadId, "contacted");
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast({ title: "Status atualizado", description: "Lead marcado como contatado." });
+      queryClient.invalidateQueries({ queryKey: ["leads"] });
+    },
+    onError: (err: any) => {
+      toast({ title: "Erro", description: err?.message ?? "Falha ao atualizar lead." });
+    },
+  });
+
   return (
     <DashboardLayout>
       <div className="p-8">
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-foreground mb-2">Leads</h1>
-          <p className="text-muted-foreground">
-            Gerencie os interessados vindos do site
-          </p>
+          <p className="text-muted-foreground">Gerencie os interessados vindos do site</p>
         </div>
 
         <Card>
@@ -56,16 +50,11 @@ const Leads = () => {
             <div className="flex items-center justify-between">
               <div>
                 <CardTitle>Todos os Leads</CardTitle>
-                <CardDescription>
-                  Lista de contatos interessados em imóveis
-                </CardDescription>
+                <CardDescription>Lista de contatos interessados em imóveis</CardDescription>
               </div>
               <div className="relative w-64">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder="Buscar leads..."
-                  className="pl-10"
-                />
+                <Input placeholder="Buscar leads..." className="pl-10" />
               </div>
             </div>
           </CardHeader>
@@ -83,46 +72,67 @@ const Leads = () => {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {mockLeads.map((lead) => (
+                {isLoading && (
+                  <TableRow>
+                    <TableCell colSpan={7} className="text-center text-muted-foreground">
+                      Carregando...
+                    </TableCell>
+                  </TableRow>
+                )}
+                {!isLoading && data && data.length === 0 && (
+                  <TableRow>
+                    <TableCell colSpan={7} className="text-center text-muted-foreground">
+                      Nenhum lead encontrado.
+                    </TableCell>
+                  </TableRow>
+                )}
+                {!isLoading && data && data.map((lead: any) => (
                   <TableRow key={lead.id}>
                     <TableCell className="font-medium">{lead.name}</TableCell>
                     <TableCell>
                       <div className="flex items-center gap-2">
                         <Phone className="h-4 w-4 text-muted-foreground" />
-                        {lead.phone}
+                        {lead.phone ?? "—"}
                       </div>
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-2">
                         <Mail className="h-4 w-4 text-muted-foreground" />
-                        {lead.email}
+                        {lead.email ?? "—"}
                       </div>
                     </TableCell>
                     <TableCell>
-                      <a 
-                        href={lead.propertyUrl}
-                        className="flex items-center gap-2 text-primary hover:underline"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                      >
-                        {lead.propertyName}
-                        <ExternalLink className="h-3 w-3" />
-                      </a>
+                      {lead.property_id ? (
+                        <button
+                          className="flex items-center gap-2 text-primary hover:underline"
+                          onClick={() => navigate(`/edit-property/${lead.property_id}`)}
+                        >
+                          {lead.properties?.code ? `${lead.properties.code} - ${lead.properties?.title ?? "Imóvel"}` : lead.properties?.title ?? "Imóvel"}
+                          <ExternalLink className="h-3 w-3" />
+                        </button>
+                      ) : (
+                        <span className="text-muted-foreground">Sem imóvel associado</span>
+                      )}
                     </TableCell>
                     <TableCell className="text-muted-foreground">
-                      {new Date(lead.date).toLocaleDateString('pt-BR')}
+                      {new Date(lead.created_at).toLocaleDateString("pt-BR")}
                     </TableCell>
                     <TableCell>
-                      <Badge 
-                        variant={lead.status === "new" ? "default" : "secondary"}
-                      >
+                      <Badge variant={lead.status === "new" ? "default" : "secondary"}>
                         {lead.status === "new" ? "Novo" : "Contatado"}
                       </Badge>
                     </TableCell>
                     <TableCell className="text-right">
-                      <Button variant="ghost" size="sm">
-                        Ver detalhes
-                      </Button>
+                      <div className="flex justify-end gap-2">
+                        <Button variant="ghost" size="sm" onClick={() => lead.property_id && navigate(`/edit-property/${lead.property_id}`)}>
+                          Ver imóvel
+                        </Button>
+                        {lead.status === "new" && (
+                          <Button variant="secondary" size="sm" disabled={updating} onClick={() => markContacted(lead.id)}>
+                            Marcar contatado
+                          </Button>
+                        )}
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))}

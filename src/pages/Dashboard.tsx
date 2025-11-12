@@ -1,6 +1,6 @@
 import DashboardLayout from "@/components/DashboardLayout";
 import StatCard from "@/components/StatCard";
-import { Building2, TrendingUp, Users, DollarSign } from "lucide-react";
+import { Building2, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Table,
@@ -12,44 +12,80 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { useNavigate } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
+import { useAuth } from "@/hooks/use-auth";
+import { countProperties, listRecentProperties } from "@/services/properties";
+import { countLeads } from "@/services/leads";
 
-const recentProperties = [
-  {
-    id: "1",
-    title: "Apartamento Moderno - Centro",
-    type: "Apartamento",
-    price: "R$ 850.000",
-    status: "Disponível",
-    date: "15/01/2025",
-  },
-  {
-    id: "2",
-    title: "Casa com Piscina - Jardins",
-    type: "Casa",
-    price: "R$ 1.200.000",
-    status: "Vendido",
-    date: "14/01/2025",
-  },
-  {
-    id: "3",
-    title: "Cobertura Duplex - Vila Nova",
-    type: "Cobertura",
-    price: "R$ 2.500/mês",
-    status: "Alugado",
-    date: "13/01/2025",
-  },
-  {
-    id: "4",
-    title: "Sala Comercial - Centro",
-    type: "Comercial",
-    price: "R$ 450.000",
-    status: "Disponível",
-    date: "12/01/2025",
-  },
-];
+const formatCurrencyBR = (value: number) =>
+  new Intl.NumberFormat("pt-BR", {
+    style: "currency",
+    currency: "BRL",
+    maximumFractionDigits: 2,
+  }).format(value ?? 0);
+
+const labelType = (type: string) => {
+  const map: Record<string, string> = {
+    apartamento: "Apartamento",
+    casa: "Casa",
+    cobertura: "Cobertura",
+    comercial: "Comercial",
+    terreno: "Terreno",
+  };
+  return map[type] ?? type;
+};
+
+const labelStatus = (status: string) => {
+  const map: Record<string, string> = {
+    disponivel: "Disponível",
+    vendido: "Vendido",
+    alugado: "Alugado",
+    inativo: "Inativo",
+  };
+  return map[status] ?? status;
+};
+
+const statusVariant = (status: string): "default" | "secondary" | "outline" => {
+  switch (status) {
+    case "disponivel":
+      return "default";
+    case "vendido":
+      return "secondary";
+    case "alugado":
+    case "inativo":
+    default:
+      return "outline";
+  }
+};
 
 const Dashboard = () => {
   const navigate = useNavigate();
+  const { session } = useAuth();
+
+  const {
+    data: propertiesCount,
+    isLoading: loadingPropsCount,
+  } = useQuery({
+    queryKey: ["properties-count"],
+    queryFn: () => countProperties(),
+    enabled: !!session,
+  });
+
+  const { data: leadsCount, isLoading: loadingLeadsCount } = useQuery({
+    queryKey: ["leads-count"],
+    queryFn: () => countLeads(),
+    enabled: !!session,
+  });
+
+  const { data: recent, isLoading: loadingRecent } = useQuery({
+    queryKey: ["recent-properties"],
+    queryFn: async () => {
+      const { data, error } = await listRecentProperties(5);
+      if (error) throw error;
+      return data ?? [];
+    },
+    enabled: !!session,
+  });
 
   return (
     <DashboardLayout>
@@ -65,18 +101,15 @@ const Dashboard = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
           <StatCard
             title="Total de Imóveis"
-            value="124"
+            value={loadingPropsCount ? "--" : propertiesCount ?? 0}
             icon={Building2}
-            trend="+12% este mês"
           />
 
           <StatCard
-            title="Leads Ativos"
-            value="342"
+            title="Leads"
+            value={loadingLeadsCount ? "--" : leadsCount ?? 0}
             icon={Users}
-            trend="+8% esta semana"
           />
-
         </div>
 
         {/* Recent Properties */}
@@ -106,28 +139,32 @@ const Dashboard = () => {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {recentProperties.map((property) => (
-                <TableRow key={property.id} className="hover:bg-hover">
-                  <TableCell className="font-medium">
-                    {property.title}
+              {loadingRecent && (
+                <TableRow>
+                  <TableCell colSpan={5} className="text-center text-muted-foreground">
+                    Carregando...
                   </TableCell>
-                  <TableCell>{property.type}</TableCell>
-                  <TableCell>{property.price}</TableCell>
+                </TableRow>
+              )}
+              {!loadingRecent && recent && recent.length === 0 && (
+                <TableRow>
+                  <TableCell colSpan={5} className="text-center text-muted-foreground">
+                    Nenhum imóvel encontrado.
+                  </TableCell>
+                </TableRow>
+              )}
+              {!loadingRecent && recent && recent.map((property) => (
+                <TableRow key={property.id} className="hover:bg-hover">
+                  <TableCell className="font-medium">{property.title}</TableCell>
+                  <TableCell>{labelType(property.type)}</TableCell>
+                  <TableCell>{formatCurrencyBR(property.price)}</TableCell>
                   <TableCell>
-                    <Badge
-                      variant={
-                        property.status === "Disponível"
-                          ? "default"
-                          : property.status === "Vendido"
-                          ? "secondary"
-                          : "outline"
-                      }
-                    >
-                      {property.status}
+                    <Badge variant={statusVariant(property.status)}>
+                      {labelStatus(property.status)}
                     </Badge>
                   </TableCell>
                   <TableCell className="text-muted-foreground">
-                    {property.date}
+                    {new Date(property.updated_at || property.created_at).toLocaleDateString("pt-BR")}
                   </TableCell>
                 </TableRow>
               ))}

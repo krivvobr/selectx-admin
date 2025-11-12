@@ -21,14 +21,19 @@ import { listCities, listNeighborhoodsByCity } from "@/services/locations";
 import ImageKitUpload from "@/components/ImageKitUpload";
 import { useAuth } from "@/hooks/use-auth";
 
-const formatCurrency = (value: string) => {
-  if (!value) return "";
+const formatCurrency = (value: string | number) => {
+  if (value === undefined || value === null || value === "") return "";
+  if (typeof value === "number") {
+    return new Intl.NumberFormat("pt-BR", {
+      style: "currency",
+      currency: "BRL",
+      minimumFractionDigits: 2,
+    }).format(value);
+  }
   let onlyNumbers = value.replace(/\D/g, "");
   if (onlyNumbers === "") return "";
-
-  let intValue = parseInt(onlyNumbers, 10);
+  const intValue = parseInt(onlyNumbers, 10);
   if (isNaN(intValue)) return "";
-
   return new Intl.NumberFormat("pt-BR", {
     style: "currency",
     currency: "BRL",
@@ -36,18 +41,18 @@ const formatCurrency = (value: string) => {
   }).format(intValue / 100);
 };
 
-const formatNumber = (value: string) => {
-  if (!value) return "";
-  let onlyNumbers = value.replace(/\D/g, "");
+const formatNumber = (value: string | number) => {
+  if (value === undefined || value === null || value === "") return "";
+  const toLocale = (num: number) =>
+    num.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  if (typeof value === "number") {
+    return toLocale(value);
+  }
+  const onlyNumbers = value.replace(/\D/g, "");
   if (onlyNumbers === "") return "";
-
-  let floatValue = parseFloat(onlyNumbers) / 100;
+  const floatValue = parseFloat(onlyNumbers) / 100;
   if (isNaN(floatValue)) return "";
-
-  return floatValue.toLocaleString("pt-BR", {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  });
+  return toLocale(floatValue);
 };
 
 const generateRandomCode = () => {
