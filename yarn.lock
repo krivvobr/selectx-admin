@@ -2304,6 +2304,19 @@ ignore@^7.0.0:
   resolved "https://registry.yarnpkg.com/ignore/-/ignore-7.0.5.tgz#4cb5f6cd7d4c7ab0365738c7aea888baa6d7efd9"
   integrity sha512-Hs59xBNfUIunMFgWAbGX5cq6893IbWg4KnrjbYwX3tx0ztorVgTDA6B2sxf8ejHJ4wz8BqGUMYlnzNBer5NvGg==
 
+imagekit-javascript@^3.0.2:
+  version "3.1.0"
+  resolved "https://registry.yarnpkg.com/imagekit-javascript/-/imagekit-javascript-3.1.0.tgz#129fe885124a1a6086d9915cb439192bbc12f4f9"
+  integrity sha512-56YmmOg6vKarIg4A41E9T08qQ2ri8862AYU/Ykhrbr9Cd8i6BIeKkroR16cmsNYFOIoLk35/O7b8o7I8DoyGaQ==
+
+imagekitio-react@^4.3.0:
+  version "4.3.0"
+  resolved "https://registry.yarnpkg.com/imagekitio-react/-/imagekitio-react-4.3.0.tgz#3498724f01d8846e2d2340d9110f69ae4ca252d8"
+  integrity sha512-IM9bbyJeznkMiCQyahzIj8c8r6xM9EwQj1Hddws7D62Sb9LnKdR1BqhEH/y5oc6lgvRlWDr7SoFIocZneFwfUg==
+  dependencies:
+    imagekit-javascript "^3.0.2"
+    prop-types "^15.7.2"
+
 import-fresh@^3.2.1:
   version "3.3.1"
   resolved "https://registry.yarnpkg.com/import-fresh/-/import-fresh-3.3.1.tgz#9cecb56503c0ada1f2741dbbd6546e4b13b57ccf"
@@ -2719,7 +2732,7 @@ prelude-ls@^1.2.1:
   resolved "https://registry.yarnpkg.com/prelude-ls/-/prelude-ls-1.2.1.tgz#debc6489d7a6e6b0e7611888cec880337d316396"
   integrity sha512-vkcDPrRZo1QZLbn5RLGPpg/WmIQ65qoWWhcGKf/b5eplkkarX0m9z8ppCat4mlOqUsWpyNuYgO3VRyrYHSzX5g==
 
-prop-types@^15.6.2, prop-types@^15.8.1:
+prop-types@^15.6.2, prop-types@^15.7.2, prop-types@^15.8.1:
   version "15.8.1"
   resolved "https://registry.yarnpkg.com/prop-types/-/prop-types-15.8.1.tgz#67d87bf1a694f48435cf332c24af10214a3140b5"
   integrity sha512-oj87CgZICdulUohogVAR7AjlC0327U4el4L6eAvOqCeudMDVU0NThNaV+b9Df4dXgSP1gXMTnPdhfe/2qDH5cg==
