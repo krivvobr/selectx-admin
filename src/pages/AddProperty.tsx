@@ -18,7 +18,7 @@ import { useState } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { createProperty } from "@/services/properties";
 import { listCities, listNeighborhoodsByCity } from "@/services/locations";
-import { useAuth } from "@/context/AuthContext";
+import { useAuth } from "@/hooks/use-auth";
 
 const AddProperty = () => {
   const navigate = useNavigate();

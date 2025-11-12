@@ -8,7 +8,7 @@ import { createNeighborhood, listCities, listNeighborhoodsByCity, type Neighborh
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useState } from "react";
 import { toast } from "sonner";
-import { useAuth } from "@/context/AuthContext";
+import { useAuth } from "@/hooks/use-auth";
 
 const Neighborhoods = () => {
   const qc = useQueryClient();

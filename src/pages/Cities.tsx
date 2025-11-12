@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createCity, listCities, type City } from "@/services/locations";
 import { toast } from "sonner";
-import { useAuth } from "@/context/AuthContext";
+import { useAuth } from "@/hooks/use-auth";
 
 const Cities = () => {
   const qc = useQueryClient();
@@ -68,11 +68,7 @@ const Cities = () => {
                 <Button type="submit" disabled={isPending || !isAdmin}>Salvar</Button>
               </div>
             </form>
-            {!isAdmin && (
-              <p className="text-sm text-muted-foreground mt-2">
-                Você não tem permissão para cadastrar cidades.
-              </p>
-            )}
+
           </CardContent>
         </Card>
 

@@ -188,14 +188,14 @@ const Properties = () => {
                     Carregando imóveis...
                   </TableCell>
                 </TableRow>
-              ) : !data || data.length === 0 ? (
+              ) : !data || data?.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={10} className="text-center py-8 text-muted-foreground">
                     Nenhum imóvel encontrado.
                   </TableCell>
                 </TableRow>
               ) : (
-                data.map((property) => (
+                data?.map((property) => (
                   <TableRow key={property.id} className="hover:bg-hover">
                     <TableCell className="font-mono text-sm">{property.code}</TableCell>
                     <TableCell className="font-medium">{property.title}</TableCell>

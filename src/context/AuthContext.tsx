@@ -1,18 +1,7 @@
-import { createContext, useContext, useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { Session, User } from "@supabase/supabase-js";
 import { supabase } from "@/lib/supabaseClient";
-
-type AuthContextValue = {
-  session: Session | null;
-  user: User | null;
-  loading: boolean;
-  role: "admin" | "agent" | "viewer" | null;
-  isAdmin: boolean;
-  signIn: (email: string, password: string) => Promise<{ error: null | { message: string } }>
-  signOut: () => Promise<void>;
-};
-
-const AuthContext = createContext<AuthContextValue | undefined>(undefined);
+import { AuthContext } from "./auth-context";
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [session, setSession] = useState<Session | null>(null);
@@ -21,63 +10,44 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [role, setRole] = useState<"admin" | "agent" | "viewer" | null>(null);
 
   useEffect(() => {
-    let mounted = true;
+    const handleAuthStateChange = async (session: Session | null) => {
+      setSession(session);
+      const currentUser = session?.user;
+      setUser(currentUser ?? null);
 
-    supabase.auth
-      .getSession()
-      .then(({ data }) => {
-        if (!mounted) return;
-        setSession(data.session);
-        setUser(data.session?.user ?? null);
-        setLoading(false);
-      })
-      .catch(() => {
-        if (!mounted) return;
-        setLoading(false);
-      });
-
-    const { data: authListener } = supabase.auth.onAuthStateChange(async (_event, newSession) => {
-      try {
-        setSession(newSession);
-        setUser(newSession?.user ?? null);
-        if (newSession?.user?.id) {
-          const { data: profile } = await supabase
-            .from("profiles")
-            .select("role")
-            .eq("id", newSession.user.id)
-            .single();
-          setRole((profile?.role as "admin" | "agent" | "viewer") ?? null);
-        } else {
-          setRole(null);
-        }
-      } finally {
-        // Ensure loading is cleared on any auth state resolution
-        setLoading(false);
+      if (currentUser) {
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("role")
+          .eq("id", currentUser.id)
+          .single();
+        setRole((profile?.role as "admin" | "agent" | "viewer") ?? null);
+      } else {
+        setRole(null);
       }
+      setLoading(false);
+    };
+
+    const fetchSession = async () => {
+      setLoading(true);
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+      await handleAuthStateChange(session);
+    };
+
+    fetchSession();
+
+    const {
+      data: { subscription: authListener },
+    } = supabase.auth.onAuthStateChange(async (_event, session) => {
+      await handleAuthStateChange(session);
     });
 
     return () => {
-      mounted = false;
-      authListener.subscription.unsubscribe();
+      authListener.unsubscribe();
     };
   }, []);
-
-  useEffect(() => {
-    // Load role on initial mount once we have a session
-    const fetchRole = async () => {
-      if (!user?.id) {
-        setRole(null);
-        return;
-      }
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("role")
-        .eq("id", user.id)
-        .single();
-      setRole((profile?.role as "admin" | "agent" | "viewer") ?? null);
-    };
-    fetchRole();
-  }, [user?.id]);
 
   const signIn = async (email: string, password: string) => {
     const { error } = await supabase.auth.signInWithPassword({ email, password });
@@ -95,9 +65,3 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };
-
-export function useAuth() {
-  const ctx = useContext(AuthContext);
-  if (!ctx) throw new Error("useAuth must be used within AuthProvider");
-  return ctx;
-}
