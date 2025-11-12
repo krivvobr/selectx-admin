@@ -324,7 +324,7 @@ const EditProperty = () => {
                       name="address"
                       placeholder="Rua, número"
                       defaultValue={data.address ?? ""}
-                      required
+                      
                     />
                   </div>
                   <div className="space-y-2">
@@ -353,7 +353,7 @@ const EditProperty = () => {
                     <Select
                       value={selectedNeighborhood}
                       onValueChange={setSelectedNeighborhood}
-                      required
+                      
                     >
                       <SelectTrigger id="neighborhood">
                         <SelectValue placeholder="Selecione o bairro" />
