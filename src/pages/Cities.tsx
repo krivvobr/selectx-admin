@@ -99,7 +99,6 @@ const Cities = () => {
       return;
     }
     await addCity({ name, state });
-    (e.currentTarget as HTMLFormElement).reset();
   };
 
   const handleDelete = (city: City) => {
@@ -205,20 +204,18 @@ const Cities = () => {
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Editar Cidade</DialogTitle>
-            <DialogDescription>
-              <form onSubmit={handleEditSubmit} className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="name">Nome</Label>
-                  <Input id="name" name="name" defaultValue={selectedCity?.name} />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="state">UF</Label>
-                  <Input id="state" name="state" defaultValue={selectedCity?.state} />
-                </div>
-                <Button type="submit">Salvar</Button>
-              </form>
-            </DialogDescription>
           </DialogHeader>
+          <form onSubmit={handleEditSubmit} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="name">Nome</Label>
+              <Input id="name" name="name" defaultValue={selectedCity?.name} />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="state">UF</Label>
+              <Input id="state" name="state" defaultValue={selectedCity?.state} />
+            </div>
+            <Button type="submit">Salvar</Button>
+          </form>
         </DialogContent>
       </Dialog>
     </DashboardLayout>

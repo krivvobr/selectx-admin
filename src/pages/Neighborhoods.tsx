@@ -117,7 +117,6 @@ const Neighborhoods = () => {
       return;
     }
     await addNeighborhood({ city_id: cityId, name });
-    (e.currentTarget as HTMLFormElement).reset();
   };
 
   const handleDelete = (neighborhood: Neighborhood) => {
@@ -236,16 +235,14 @@ const Neighborhoods = () => {
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Editar Bairro</DialogTitle>
-            <DialogDescription>
-              <form onSubmit={handleEditSubmit} className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="name">Nome do Bairro</Label>
-                  <Input id="name" name="name" defaultValue={selectedNeighborhood?.name} />
-                </div>
-                <Button type="submit">Salvar</Button>
-              </form>
-            </DialogDescription>
           </DialogHeader>
+          <form onSubmit={handleEditSubmit} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="name">Nome do Bairro</Label>
+              <Input id="name" name="name" defaultValue={selectedNeighborhood?.name} />
+            </div>
+            <Button type="submit">Salvar</Button>
+          </form>
         </DialogContent>
       </Dialog>
     </DashboardLayout>
