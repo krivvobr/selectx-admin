@@ -123,6 +123,7 @@ const AddProperty = () => {
     };
 
     const unmaskedPrice = price.replace(/\D/g, "");
+    const city = cities.find((c) => c.id === cityId);
 
     const payload = {
       code: code,
@@ -132,18 +133,9 @@ const AddProperty = () => {
       purpose: purpose as any,
       price: Number(unmaskedPrice) / 100,
       address: String(fd.get("address") ?? "").trim(),
-      city: (() => {
-        const c = cities.find((x) => x.id === cityId);
-        return c ? c.name : "";
-      })(),
-      state: (() => {
-        const c = cities.find((x) => x.id === cityId);
-        return c ? c.state : "";
-      })(),
-      neighborhood: (() => {
-        const n = neighborhoods.find((x) => x.id === neighborhoodId);
-        return n ? n.name : "";
-      })(),
+      city_id: cityId,
+      neighborhood_id: neighborhoodId,
+      state: city ? city.state : "",
       area: getNum("area"),
       bedrooms: getNum("bedrooms"),
       bathrooms: getNum("bathrooms"),

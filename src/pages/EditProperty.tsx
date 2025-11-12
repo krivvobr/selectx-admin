@@ -94,25 +94,17 @@ const EditProperty = () => {
   });
 
   useEffect(() => {
-    if (data && citiesData) {
-      const city = citiesData.find((c) => c.name === data.city);
-      if (city) {
-        setSelectedCity(city.id);
-      }
+    if (data) {
+      setSelectedCity(data.city_id);
     }
-  }, [data, citiesData]);
+  }, [data]);
 
   useEffect(() => {
     if (selectedCity) {
       listNeighborhoodsByCity(selectedCity).then((neighborhoodsData) => {
         setNeighborhoods(neighborhoodsData);
         if (data && neighborhoodsData && neighborhoodsData.length > 0) {
-          const neighborhood = neighborhoodsData.find(
-            (n) => n.name === data.neighborhood
-          );
-          if (neighborhood) {
-            setSelectedNeighborhood(neighborhood.id);
-          }
+          setSelectedNeighborhood(data.neighborhood_id);
         }
       });
     } else {
@@ -167,10 +159,6 @@ const EditProperty = () => {
     };
 
     const unmaskedPrice = price.replace(/\D/g, "");
-    const city = cities.find((c) => c.id === selectedCity);
-    const neighborhood = neighborhoods.find(
-      (n) => n.id === selectedNeighborhood
-    );
 
     const payload = {
       code: String(fd.get("code") ?? data.code).trim(),
@@ -181,8 +169,8 @@ const EditProperty = () => {
       purpose: purpose as any,
       price: Number(unmaskedPrice) / 100,
       address: String(fd.get("address") ?? data.address ?? "").trim(),
-      neighborhood: neighborhood?.name ?? "",
-      city: city?.name ?? "",
+      city_id: selectedCity,
+      neighborhood_id: selectedNeighborhood,
       area: getNum("area"),
       bedrooms: getNum("bedrooms"),
       bathrooms: getNum("bathrooms"),

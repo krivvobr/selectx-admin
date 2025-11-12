@@ -13,8 +13,8 @@ export interface Property {
   purpose: PropertyPurpose;
   price: number;
   address: string | null;
-  neighborhood: string | null;
-  city: string | null;
+  city_id: string | null;
+  neighborhood_id: string | null;
   state: string | null;
   area: number | null;
   bedrooms: number | null;
