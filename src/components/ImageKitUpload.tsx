@@ -1,10 +1,16 @@
 import { Upload } from "lucide-react";
 import { useMemo } from "react";
 import { IKContext, IKUpload } from "imagekitio-react";
+  const publicKey = import.meta.env.VITE_IMAGEKIT_PUBLIC_KEY;
+  const urlEndpoint = import.meta.env.VITE_IMAGEKIT_URL_ENDPOINT;
 
 const authenticator = async () => {
   try {
-    const response = await fetch(import.meta.env.VITE_IMAGEKIT_AUTH_ENDPOINT);
+    const response = await fetch(import.meta.env.VITE_IMAGEKIT_AUTH_ENDPOINT, {
+      headers: {
+        Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+      },
+    });
 
     if (!response.ok) {
       const errorText = await response.text();
@@ -27,8 +33,6 @@ interface ImageKitUploadProps {
 }
 
 const ImageKitUpload = ({ onSuccess, onError }: ImageKitUploadProps) => {
-  const publicKey = import.meta.env.VITE_IMAGEKIT_PUBLIC_KEY;
-  const urlEndpoint = import.meta.env.VITE_IMAGEKIT_URL_ENDPOINT;
 
   const handleUploadClick = () => {
     const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
