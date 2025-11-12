@@ -30,13 +30,6 @@ const Leads = () => {
       const { error } = await deleteLead(leadId);
       if (error) throw error;
     },
-    onSuccess: () => {
-      toast({ title: "Lead removido", description: "O lead foi excluído." });
-      queryClient.invalidateQueries({ queryKey: ["leads"] });
-    },
-    onError: (err: any) => {
-      toast({ title: "Erro", description: err?.message ?? "Falha ao remover lead." });
-    },
   });
 
   return (
@@ -136,7 +129,13 @@ const Leads = () => {
                           disabled={deleting}
                           onClick={async () => {
                             if (!window.confirm("Deseja realmente remover este lead?")) return;
-                            await removeLead(lead.id);
+                            try {
+                              await removeLead(lead.id);
+                              toast({ title: "Lead removido", description: "O lead foi excluído." });
+                              queryClient.invalidateQueries({ queryKey: ["leads"] });
+                            } catch (err: any) {
+                              toast({ title: "Erro", description: err?.message ?? "Falha ao remover lead." });
+                            }
                           }}
                         >
                           Remover
