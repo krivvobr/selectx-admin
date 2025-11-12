@@ -1,3 +1,4 @@
+import ImageKitUpload from "@/components/ImageKitUpload";
 import {
   listCities,
   listNeighborhoodsByCity,
@@ -15,7 +16,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ArrowLeft, Upload } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 import { useNavigate, useParams } from "react-router-dom";
 import { toast } from "sonner";
 import { useEffect, useState } from "react";
@@ -73,6 +74,8 @@ const EditProperty = () => {
   const [selectedNeighborhood, setSelectedNeighborhood] = useState<
     string | undefined
   >();
+  const [images, setImages] = useState<string[]>([]);
+  const [coverImage, setCoverImage] = useState<string>("");
 
   const { data: citiesData } = useQuery({
     queryKey: ["cities"],
@@ -96,6 +99,8 @@ const EditProperty = () => {
   useEffect(() => {
     if (data) {
       setSelectedCity(data.city_id);
+      setImages(data.images ?? []);
+      setCoverImage(data.cover_image ?? "");
     }
   }, [data]);
 
@@ -179,6 +184,8 @@ const EditProperty = () => {
       furnished: furnished === "sim",
       financing: financing === "sim",
       floor: getNum("floor"),
+      images: images,
+      cover_image: coverImage,
     };
 
     if (!payload.type || !payload.purpose) {
@@ -478,14 +485,56 @@ const EditProperty = () => {
                 <CardTitle>Fotos</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="border-2 border-dashed border-border rounded-lg p-8 text-center hover:border-muted-foreground transition-colors cursor-pointer">
-                  <Upload className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-                  <p className="text-sm text-muted-foreground mb-2">
-                    Clique para fazer upload ou arraste as imagens
-                  </p>
-                  <p className="text-xs text-muted-foreground">
-                    Mínimo de 5 imagens, máximo de 20
-                  </p>
+                <ImageKitUpload
+                  onSuccess={(url) => {
+                    if (images.length === 0) {
+                      setCoverImage(url);
+                    }
+                    setImages((prev) => [...prev, url]);
+                  }}
+                  onError={(error) => {
+                    console.error(error);
+                    toast.error("Erro ao fazer upload da imagem.");
+                  }}
+                />
+                <div className="mt-4 grid grid-cols-3 gap-4">
+                  {images.map((url, index) => (
+                    <div key={index} className="relative">
+                      <img
+                        src={url}
+                        alt={`property image ${index}`}
+                        className="w-full h-32 object-cover rounded-lg"
+                      />
+                      {coverImage === url && (
+                        <div className="absolute top-2 left-2 bg-primary text-primary-foreground text-xs px-2 py-1 rounded">
+                          Capa
+                        </div>
+                      )}
+                      <Button
+                        variant="destructive"
+                        size="sm"
+                        className="absolute top-2 right-2"
+                        onClick={() => {
+                          if (coverImage === url) {
+                            setCoverImage(images.find((i) => i !== url) ?? "");
+                          }
+                          setImages((prev) => prev.filter((i) => i !== url));
+                        }}
+                      >
+                        X
+                      </Button>
+                      {coverImage !== url && (
+                        <Button
+                          variant="secondary"
+                          size="sm"
+                          className="absolute bottom-2 left-2"
+                          onClick={() => setCoverImage(url)}
+                        >
+                          Definir como capa
+                        </Button>
+                      )}
+                    </div>
+                  ))}
                 </div>
               </CardContent>
             </Card>

@@ -301,3 +301,7 @@ select c.id, n.name from (
 ) as n(city, name)
 join public.cities c on c.name = n.city
 on conflict (city_id, name) do nothing;
+
+-- Alter properties table to add images and cover_image columns
+alter table public.properties add column if not exists images jsonb;
+alter table public.properties add column if not exists cover_image text;

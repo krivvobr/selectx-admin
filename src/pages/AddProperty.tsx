@@ -18,6 +18,7 @@ import { useState, useEffect } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { createProperty } from "@/services/properties";
 import { listCities, listNeighborhoodsByCity } from "@/services/locations";
+import ImageKitUpload from "@/components/ImageKitUpload";
 import { useAuth } from "@/hooks/use-auth";
 
 const formatCurrency = (value: string) => {
@@ -66,6 +67,8 @@ const AddProperty = () => {
   const [price, setPrice] = useState("");
   const [area, setArea] = useState("");
   const [code, setCode] = useState(generateRandomCode());
+  const [images, setImages] = useState<string[]>([]);
+  const [coverImage, setCoverImage] = useState<string>("");
 
   useEffect(() => {
     setCode(generateRandomCode());
@@ -145,6 +148,8 @@ const AddProperty = () => {
       financing: financing === "sim",
       floor: getNum("floor"),
       status: "disponivel" as const,
+      images: images,
+      cover_image: coverImage,
     };
 
     if (!payload.type || !payload.purpose) {
@@ -441,14 +446,56 @@ const AddProperty = () => {
                 <CardTitle>Fotos</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="border-2 border-dashed border-border rounded-lg p-8 text-center hover:border-muted-foreground transition-colors cursor-pointer">
-                  <Upload className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-                  <p className="text-sm text-muted-foreground mb-2">
-                    Clique para fazer upload ou arraste as imagens
-                  </p>
-                  <p className="text-xs text-muted-foreground">
-                    Mínimo de 5 imagens, máximo de 20
-                  </p>
+                <ImageKitUpload
+                  onSuccess={(url) => {
+                    if (images.length === 0) {
+                      setCoverImage(url);
+                    }
+                    setImages((prev) => [...prev, url]);
+                  }}
+                  onError={(error) => {
+                    console.error(error);
+                    toast.error("Erro ao fazer upload da imagem.");
+                  }}
+                />
+                <div className="mt-4 grid grid-cols-3 gap-4">
+                  {images.map((url, index) => (
+                    <div key={index} className="relative">
+                      <img
+                        src={url}
+                        alt={`property image ${index}`}
+                        className="w-full h-32 object-cover rounded-lg"
+                      />
+                      {coverImage === url && (
+                        <div className="absolute top-2 left-2 bg-primary text-primary-foreground text-xs px-2 py-1 rounded">
+                          Capa
+                        </div>
+                      )}
+                      <Button
+                        variant="destructive"
+                        size="sm"
+                        className="absolute top-2 right-2"
+                        onClick={() => {
+                          if (coverImage === url) {
+                            setCoverImage(images.find((i) => i !== url) ?? "");
+                          }
+                          setImages((prev) => prev.filter((i) => i !== url));
+                        }}
+                      >
+                        X
+                      </Button>
+                      {coverImage !== url && (
+                        <Button
+                          variant="secondary"
+                          size="sm"
+                          className="absolute bottom-2 left-2"
+                          onClick={() => setCoverImage(url)}
+                        >
+                          Definir como capa
+                        </Button>
+                      )}
+                    </div>
+                  ))}
                 </div>
               </CardContent>
             </Card>
