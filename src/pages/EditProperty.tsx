@@ -104,10 +104,12 @@ const EditProperty = () => {
 
   useEffect(() => {
     if (selectedCity) {
-      listNeighborhoodsByCity(selectedCity).then((data) => {
-        setNeighborhoods(data);
-        if (data && data.length > 0) {
-          const neighborhood = data.find((n) => n.name === data.neighborhood);
+      listNeighborhoodsByCity(selectedCity).then((neighborhoodsData) => {
+        setNeighborhoods(neighborhoodsData);
+        if (data && neighborhoodsData && neighborhoodsData.length > 0) {
+          const neighborhood = neighborhoodsData.find(
+            (n) => n.name === data.neighborhood
+          );
           if (neighborhood) {
             setSelectedNeighborhood(neighborhood.id);
           }
@@ -181,7 +183,6 @@ const EditProperty = () => {
       address: String(fd.get("address") ?? data.address ?? "").trim(),
       neighborhood: neighborhood?.name ?? "",
       city: city?.name ?? "",
-      state: city?.state ?? "",
       area: getNum("area"),
       bedrooms: getNum("bedrooms"),
       bathrooms: getNum("bathrooms"),
@@ -324,7 +325,6 @@ const EditProperty = () => {
                       name="address"
                       placeholder="Rua, número"
                       defaultValue={data.address ?? ""}
-                      
                     />
                   </div>
                   <div className="space-y-2">
@@ -353,7 +353,6 @@ const EditProperty = () => {
                     <Select
                       value={selectedNeighborhood}
                       onValueChange={setSelectedNeighborhood}
-                      
                     >
                       <SelectTrigger id="neighborhood">
                         <SelectValue placeholder="Selecione o bairro" />
