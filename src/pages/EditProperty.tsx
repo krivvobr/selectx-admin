@@ -36,6 +36,23 @@ const formatCurrency = (value: string | number) => {
   }).format(intValue / 100);
 };
 
+const formatNumber = (value: string | number) => {
+  if (typeof value === 'number') {
+    value = value.toString();
+  }
+  if (!value) return "";
+  let onlyNumbers = value.replace(/\D/g, "");
+  if (onlyNumbers === "") return "";
+
+  let floatValue = parseFloat(onlyNumbers) / 100;
+  if (isNaN(floatValue)) return "";
+
+  return floatValue.toLocaleString("pt-BR", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
+};
+
 const EditProperty = () => {
   const navigate = useNavigate();
   const { id } = useParams();
@@ -45,6 +62,7 @@ const EditProperty = () => {
   const [furnished, setFurnished] = useState<string>("nao");
   const [financing, setFinancing] = useState<string>("sim");
   const [price, setPrice] = useState("");
+  const [area, setArea] = useState("");
 
   const { data, isLoading } = useQuery({
     queryKey: ["property", id],
@@ -63,6 +81,7 @@ const EditProperty = () => {
       setFurnished(data.furnished ? "sim" : "nao");
       setFinancing(data.financing ? "sim" : "nao");
       setPrice(formatCurrency(data.price));
+      setArea(formatNumber(data.area ?? 0));
     }
   }, [data]);
 
@@ -85,6 +104,11 @@ const EditProperty = () => {
     setPrice(formatted);
   };
 
+  const handleAreaChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const formatted = formatNumber(e.target.value);
+    setArea(formatted);
+  };
+
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!data) return;
@@ -92,7 +116,7 @@ const EditProperty = () => {
     const fd = new FormData(e.currentTarget);
     const getNum = (key: string) => {
       const val = String(fd.get(key) ?? "").trim();
-      return val ? Number(val) : null;
+      return val ? Number(val.replace(",", ".")) : null;
     };
 
     const unmaskedPrice = price.replace(/\D/g, "");
@@ -301,9 +325,9 @@ const EditProperty = () => {
                     <Input
                       id="area"
                       name="area"
-                      type="number"
-                      placeholder="120"
-                      defaultValue={data.area ?? undefined}
+                      placeholder="0,00"
+                      value={area}
+                      onChange={handleAreaChange}
                       required
                     />
                   </div>

@@ -11,10 +11,10 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ArrowLeft, Upload } from "lucide-react";
+import { ArrowLeft, Upload, RefreshCw } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { createProperty } from "@/services/properties";
 import { listCities, listNeighborhoodsByCity } from "@/services/locations";
@@ -35,6 +35,24 @@ const formatCurrency = (value: string) => {
   }).format(intValue / 100);
 };
 
+const formatNumber = (value: string) => {
+  if (!value) return "";
+  let onlyNumbers = value.replace(/\D/g, "");
+  if (onlyNumbers === "") return "";
+
+  let floatValue = parseFloat(onlyNumbers) / 100;
+  if (isNaN(floatValue)) return "";
+
+  return floatValue.toLocaleString("pt-BR", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
+};
+
+const generateRandomCode = () => {
+  return Math.floor(100000 + Math.random() * 900000).toString();
+};
+
 const AddProperty = () => {
   const navigate = useNavigate();
   const { isAdmin } = useAuth();
@@ -46,6 +64,12 @@ const AddProperty = () => {
   const [cityId, setCityId] = useState<string>("");
   const [neighborhoodId, setNeighborhoodId] = useState<string>("");
   const [price, setPrice] = useState("");
+  const [area, setArea] = useState("");
+  const [code, setCode] = useState(generateRandomCode());
+
+  useEffect(() => {
+    setCode(generateRandomCode());
+  }, []);
 
   const { mutateAsync: addProperty, isLoading } = useMutation({
     mutationFn: async (payload: any) => {
@@ -78,6 +102,11 @@ const AddProperty = () => {
     setPrice(formatted);
   };
 
+  const handleAreaChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const formatted = formatNumber(e.target.value);
+    setArea(formatted);
+  };
+
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!isAdmin) {
@@ -90,13 +119,13 @@ const AddProperty = () => {
 
     const getNum = (key: string) => {
       const val = String(fd.get(key) ?? "").trim();
-      return val ? Number(val) : null;
+      return val ? Number(val.replace(",", ".")) : null;
     };
 
     const unmaskedPrice = price.replace(/\D/g, "");
 
     const payload = {
-      code: String(fd.get("code") ?? "").trim(),
+      code: code,
       title: String(fd.get("title") ?? "").trim(),
       description: String(fd.get("description") ?? "").trim(),
       type: type as any,
@@ -185,12 +214,23 @@ const AddProperty = () => {
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="code">Código</Label>
-                    <Input
-                      id="code"
-                      name="code"
-                      placeholder="Ex: SLX001"
-                      required
-                    />
+                    <div className="flex items-center gap-2">
+                      <Input
+                        id="code"
+                        name="code"
+                        value={code}
+                        readOnly
+                        required
+                      />
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="icon"
+                        onClick={() => setCode(generateRandomCode())}
+                      >
+                        <RefreshCw className="h-4 w-4" />
+                      </Button>
+                    </div>
                   </div>
                 </div>
 
@@ -346,8 +386,9 @@ const AddProperty = () => {
                     <Input
                       id="area"
                       name="area"
-                      type="number"
-                      placeholder="120"
+                      placeholder="0,00"
+                      value={area}
+                      onChange={handleAreaChange}
                       required
                     />
                   </div>
