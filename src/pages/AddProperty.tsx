@@ -177,7 +177,7 @@ const AddProperty = () => {
                     name="description"
                     placeholder="Descreva as características, acabamentos, lazer, segurança..."
                     rows={5}
-                    required
+                    
                   />
                 </div>
 
@@ -229,6 +229,39 @@ const AddProperty = () => {
                 <CardTitle>Localização</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="citySelect">Cidade</Label>
+                    <Select value={cityId} onValueChange={(v) => { setCityId(v); setNeighborhoodId(""); }}>
+                      <SelectTrigger id="citySelect">
+                        <SelectValue placeholder={loadingCities ? "Carregando..." : "Selecione a cidade"} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {cities.map((c) => (
+                          <SelectItem key={c.id} value={c.id}>
+                            {c.name} - {c.state}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    {!loadingCities && cities.length === 0 && (
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Nenhuma cidade cadastrada. Cadastre em "Cidades" no menu.
+                      </p>
+                    )}
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Estado (derivado)</Label>
+                    <Input
+                      value={(() => {
+                        const c = cities.find((x) => x.id === cityId);
+                        return c ? c.state : "";
+                      })()}
+                      readOnly
+                      placeholder="Selecione a cidade"
+                    />
+                  </div>
+                </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="address">Endereço</Label>
@@ -236,7 +269,7 @@ const AddProperty = () => {
                       id="address"
                       name="address"
                       placeholder="Rua, número"
-                      required
+                      
                     />
                   </div>
                   <div className="space-y-2">
@@ -272,39 +305,7 @@ const AddProperty = () => {
                     )}
                   </div>
                 </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="citySelect">Cidade</Label>
-                    <Select value={cityId} onValueChange={(v) => { setCityId(v); setNeighborhoodId(""); }}>
-                      <SelectTrigger id="citySelect">
-                        <SelectValue placeholder={loadingCities ? "Carregando..." : "Selecione a cidade"} />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {cities.map((c) => (
-                          <SelectItem key={c.id} value={c.id}>
-                            {c.name} - {c.state}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    {!loadingCities && cities.length === 0 && (
-                      <p className="text-xs text-muted-foreground mt-1">
-                        Nenhuma cidade cadastrada. Cadastre em "Cidades" no menu.
-                      </p>
-                    )}
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Estado (derivado)</Label>
-                    <Input
-                      value={(() => {
-                        const c = cities.find((x) => x.id === cityId);
-                        return c ? c.state : "";
-                      })()}
-                      readOnly
-                      placeholder="Selecione a cidade"
-                    />
-                  </div>
-                </div>
+          
               </CardContent>
             </Card>
 
