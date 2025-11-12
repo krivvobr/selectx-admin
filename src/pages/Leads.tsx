@@ -3,10 +3,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { Search, ExternalLink, Phone, Mail } from "lucide-react";
+import { Search, Phone, Mail } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { listLeads, updateLeadStatus } from "@/services/leads";
+import { listLeads, deleteLead } from "@/services/leads";
 import { useNavigate } from "react-router-dom";
 import { toast } from "@/hooks/use-toast";
 
@@ -23,17 +23,19 @@ const Leads = () => {
     },
   });
 
-  const { mutateAsync: markContacted, isLoading: updating } = useMutation({
+  // Removido fluxo de "marcar contatado" conforme solicitação
+
+  const { mutateAsync: removeLead, isLoading: deleting } = useMutation({
     mutationFn: async (leadId: string) => {
-      const { error } = await updateLeadStatus(leadId, "contacted");
+      const { error } = await deleteLead(leadId);
       if (error) throw error;
     },
     onSuccess: () => {
-      toast({ title: "Status atualizado", description: "Lead marcado como contatado." });
+      toast({ title: "Lead removido", description: "O lead foi excluído." });
       queryClient.invalidateQueries({ queryKey: ["leads"] });
     },
     onError: (err: any) => {
-      toast({ title: "Erro", description: err?.message ?? "Falha ao atualizar lead." });
+      toast({ title: "Erro", description: err?.message ?? "Falha ao remover lead." });
     },
   });
 
@@ -65,7 +67,6 @@ const Leads = () => {
                   <TableHead>Nome</TableHead>
                   <TableHead>Telefone</TableHead>
                   <TableHead>Email</TableHead>
-                  <TableHead>Imóvel Interessado</TableHead>
                   <TableHead>Data</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead className="text-right">Ações</TableHead>
@@ -74,14 +75,14 @@ const Leads = () => {
               <TableBody>
                 {isLoading && (
                   <TableRow>
-                    <TableCell colSpan={7} className="text-center text-muted-foreground">
+                    <TableCell colSpan={6} className="text-center text-muted-foreground">
                       Carregando...
                     </TableCell>
                   </TableRow>
                 )}
                 {!isLoading && data && data.length === 0 && (
                   <TableRow>
-                    <TableCell colSpan={7} className="text-center text-muted-foreground">
+                    <TableCell colSpan={6} className="text-center text-muted-foreground">
                       Nenhum lead encontrado.
                     </TableCell>
                   </TableRow>
@@ -101,19 +102,6 @@ const Leads = () => {
                         {lead.email ?? "—"}
                       </div>
                     </TableCell>
-                    <TableCell>
-                      {lead.property_id ? (
-                        <button
-                          className="flex items-center gap-2 text-primary hover:underline"
-                          onClick={() => navigate(`/edit-property/${lead.property_id}`)}
-                        >
-                          {lead.properties?.code ? `${lead.properties.code} - ${lead.properties?.title ?? "Imóvel"}` : lead.properties?.title ?? "Imóvel"}
-                          <ExternalLink className="h-3 w-3" />
-                        </button>
-                      ) : (
-                        <span className="text-muted-foreground">Sem imóvel associado</span>
-                      )}
-                    </TableCell>
                     <TableCell className="text-muted-foreground">
                       {new Date(lead.created_at).toLocaleDateString("pt-BR")}
                     </TableCell>
@@ -124,14 +112,35 @@ const Leads = () => {
                     </TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-2">
-                        <Button variant="ghost" size="sm" onClick={() => lead.property_id && navigate(`/edit-property/${lead.property_id}`)}>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => {
+                            const url = lead.property_url as string | undefined;
+                            if (url && typeof url === "string") {
+                              window.open(url, "_blank");
+                              return;
+                            }
+                            if (lead.property_id) {
+                              navigate(`/edit-property/${lead.property_id}`);
+                              return;
+                            }
+                            toast({ title: "Sem imóvel", description: "Este lead não possui URL associada." });
+                          }}
+                        >
                           Ver imóvel
                         </Button>
-                        {lead.status === "new" && (
-                          <Button variant="secondary" size="sm" disabled={updating} onClick={() => markContacted(lead.id)}>
-                            Marcar contatado
-                          </Button>
-                        )}
+                        <Button
+                          variant="destructive"
+                          size="sm"
+                          disabled={deleting}
+                          onClick={async () => {
+                            if (!window.confirm("Deseja realmente remover este lead?")) return;
+                            await removeLead(lead.id);
+                          }}
+                        >
+                          Remover
+                        </Button>
                       </div>
                     </TableCell>
                   </TableRow>

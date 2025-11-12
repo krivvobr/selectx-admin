@@ -11,15 +11,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   useEffect(() => {
     const handleAuthStateChange = async (session: Session | null) => {
-      // Atualiza sessão e usuário imediatamente
       setSession(session);
       const currentUser = session?.user;
       setUser(currentUser ?? null);
 
-      // Não bloquear a UI esperando a consulta de perfil/role
       setLoading(false);
 
-      // Buscar role em background; caso falhe, manter role como null
       if (currentUser) {
         try {
           const { data: profile } = await supabase
@@ -38,10 +35,17 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
     const fetchSession = async () => {
       setLoading(true);
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
-      await handleAuthStateChange(session);
+      try {
+        const {
+          data: { session },
+        } = await supabase.auth.getSession();
+        await handleAuthStateChange(session);
+      } catch (_err) {
+        setSession(null);
+        setUser(null);
+        setRole(null);
+        setLoading(false);
+      }
     };
 
     fetchSession();

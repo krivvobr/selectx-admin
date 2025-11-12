@@ -40,3 +40,7 @@ export async function countLeads(status?: LeadStatus) {
   if (error) throw error;
   return count ?? 0;
 }
+
+export async function deleteLead(id: string) {
+  return supabase.from("leads").delete().eq("id", id);
+}
