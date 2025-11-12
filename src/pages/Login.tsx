@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -8,7 +8,7 @@ import { toast } from "sonner";
 import { useAuth } from "@/hooks/use-auth";
 
 const Login = () => {
-  const { signIn } = useAuth();
+  const { signIn, session } = useAuth();
   const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -23,8 +23,14 @@ const Login = () => {
       toast.error(error.message || "Falha no login");
       return;
     }
-    navigate("/");
   };
+
+  // Navega somente quando a sessão realmente existir (evita corrida com ProtectedRoute)
+  useEffect(() => {
+    if (session) {
+      navigate("/", { replace: true });
+    }
+  }, [session, navigate]);
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-background p-4">
