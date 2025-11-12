@@ -19,6 +19,7 @@ export interface Property {
   area: number | null;
   bedrooms: number | null;
   bathrooms: number | null;
+  suites: number | null;
   parking: number | null;
   furnished: boolean;
   financing: boolean;

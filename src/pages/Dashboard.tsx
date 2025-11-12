@@ -69,24 +69,14 @@ const Dashboard = () => {
             icon={Building2}
             trend="+12% este mês"
           />
-          <StatCard
-            title="Vendas este Mês"
-            value="18"
-            icon={TrendingUp}
-            trend="+25% vs mês anterior"
-          />
+
           <StatCard
             title="Leads Ativos"
             value="342"
             icon={Users}
             trend="+8% esta semana"
           />
-          <StatCard
-            title="Receita Total"
-            value="R$ 2.4M"
-            icon={DollarSign}
-            trend="+15% este mês"
-          />
+
         </div>
 
         {/* Recent Properties */}

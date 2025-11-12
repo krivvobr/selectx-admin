@@ -20,6 +20,21 @@ import { createProperty } from "@/services/properties";
 import { listCities, listNeighborhoodsByCity } from "@/services/locations";
 import { useAuth } from "@/hooks/use-auth";
 
+const formatCurrency = (value: string) => {
+  if (!value) return "";
+  let onlyNumbers = value.replace(/\D/g, "");
+  if (onlyNumbers === "") return "";
+
+  let intValue = parseInt(onlyNumbers, 10);
+  if (isNaN(intValue)) return "";
+
+  return new Intl.NumberFormat("pt-BR", {
+    style: "currency",
+    currency: "BRL",
+    minimumFractionDigits: 2,
+  }).format(intValue / 100);
+};
+
 const AddProperty = () => {
   const navigate = useNavigate();
   const { isAdmin } = useAuth();
@@ -30,6 +45,7 @@ const AddProperty = () => {
   const [financing, setFinancing] = useState<string>("sim");
   const [cityId, setCityId] = useState<string>("");
   const [neighborhoodId, setNeighborhoodId] = useState<string>("");
+  const [price, setPrice] = useState("");
 
   const { mutateAsync: addProperty, isLoading } = useMutation({
     mutationFn: async (payload: any) => {
@@ -57,6 +73,11 @@ const AddProperty = () => {
     enabled: !!cityId,
   });
 
+  const handlePriceChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const formatted = formatCurrency(e.target.value);
+    setPrice(formatted);
+  };
+
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!isAdmin) {
@@ -72,13 +93,15 @@ const AddProperty = () => {
       return val ? Number(val) : null;
     };
 
+    const unmaskedPrice = price.replace(/\D/g, "");
+
     const payload = {
       code: String(fd.get("code") ?? "").trim(),
       title: String(fd.get("title") ?? "").trim(),
       description: String(fd.get("description") ?? "").trim(),
       type: type as any,
       purpose: purpose as any,
-      price: Number(String(fd.get("price") ?? "0")),
+      price: Number(unmaskedPrice) / 100,
       address: String(fd.get("address") ?? "").trim(),
       city: (() => {
         const c = cities.find((x) => x.id === cityId);
@@ -95,6 +118,7 @@ const AddProperty = () => {
       area: getNum("area"),
       bedrooms: getNum("bedrooms"),
       bathrooms: getNum("bathrooms"),
+      suites: getNum("suites"),
       parking: getNum("parking"),
       furnished: furnished === "sim",
       financing: financing === "sim",
@@ -214,8 +238,9 @@ const AddProperty = () => {
                     <Input
                       id="price"
                       name="price"
-                      placeholder="Ex: 850000"
-                      type="number"
+                      placeholder="R$ 0,00"
+                      value={price}
+                      onChange={handlePriceChange}
                       required
                     />
                   </div>
@@ -315,7 +340,7 @@ const AddProperty = () => {
                 <CardTitle>Especificações</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="area">Área Útil (m²)</Label>
                     <Input
@@ -333,6 +358,10 @@ const AddProperty = () => {
                   <div className="space-y-2">
                     <Label htmlFor="bathrooms">Banheiros</Label>
                     <Input id="bathrooms" name="bathrooms" type="number" placeholder="2" />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="suites">Suítes</Label>
+                    <Input id="suites" name="suites" type="number" placeholder="1" />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="parking">Vagas</Label>

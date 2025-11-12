@@ -57,6 +57,7 @@ create table if not exists public.properties (
   area numeric(10,2),
   bedrooms int,
   bathrooms int,
+  suites int,
   parking int,
   furnished boolean default false,
   financing boolean default false,

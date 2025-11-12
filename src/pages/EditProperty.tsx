@@ -18,6 +18,24 @@ import { useEffect, useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { getPropertyById, updateProperty, type Property } from "@/services/properties";
 
+const formatCurrency = (value: string | number) => {
+  if (typeof value === 'number') {
+    value = value.toString();
+  }
+  if (!value) return "";
+  let onlyNumbers = value.replace(/\D/g, "");
+  if (onlyNumbers === "") return "";
+
+  let intValue = parseInt(onlyNumbers, 10);
+  if (isNaN(intValue)) return "";
+
+  return new Intl.NumberFormat("pt-BR", {
+    style: "currency",
+    currency: "BRL",
+    minimumFractionDigits: 2,
+  }).format(intValue / 100);
+};
+
 const EditProperty = () => {
   const navigate = useNavigate();
   const { id } = useParams();
@@ -26,6 +44,7 @@ const EditProperty = () => {
   const [purpose, setPurpose] = useState<string>("");
   const [furnished, setFurnished] = useState<string>("nao");
   const [financing, setFinancing] = useState<string>("sim");
+  const [price, setPrice] = useState("");
 
   const { data, isLoading } = useQuery({
     queryKey: ["property", id],
@@ -43,6 +62,7 @@ const EditProperty = () => {
       setPurpose(data.purpose);
       setFurnished(data.furnished ? "sim" : "nao");
       setFinancing(data.financing ? "sim" : "nao");
+      setPrice(formatCurrency(data.price));
     }
   }, [data]);
 
@@ -60,6 +80,11 @@ const EditProperty = () => {
     },
   });
 
+  const handlePriceChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const formatted = formatCurrency(e.target.value);
+    setPrice(formatted);
+  };
+
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!data) return;
@@ -70,13 +95,15 @@ const EditProperty = () => {
       return val ? Number(val) : null;
     };
 
+    const unmaskedPrice = price.replace(/\D/g, "");
+
     const payload = {
       code: String(fd.get("code") ?? data.code).trim(),
       title: String(fd.get("title") ?? data.title).trim(),
       description: String(fd.get("description") ?? data.description ?? "").trim(),
       type: type as any,
       purpose: purpose as any,
-      price: Number(String(fd.get("price") ?? String(data.price))),
+      price: Number(unmaskedPrice) / 100,
       address: String(fd.get("address") ?? data.address ?? "").trim(),
       neighborhood: String(fd.get("neighborhood") ?? data.neighborhood ?? "").trim(),
       city: String(fd.get("city") ?? data.city ?? "").trim(),
@@ -84,6 +111,7 @@ const EditProperty = () => {
       area: getNum("area"),
       bedrooms: getNum("bedrooms"),
       bathrooms: getNum("bathrooms"),
+      suites: getNum("suites"),
       parking: getNum("parking"),
       furnished: furnished === "sim",
       financing: financing === "sim",
@@ -135,6 +163,7 @@ const EditProperty = () => {
                     <Label htmlFor="title">Título do Imóvel</Label>
                     <Input
                       id="title"
+                      name="title"
                       placeholder="Ex: Apartamento Moderno - Centro"
                       defaultValue={data.title}
                       required
@@ -144,6 +173,7 @@ const EditProperty = () => {
                     <Label htmlFor="code">Código</Label>
                     <Input
                       id="code"
+                      name="code"
                       placeholder="Ex: SLX001"
                       defaultValue={data.code}
                       required
@@ -155,6 +185,7 @@ const EditProperty = () => {
                   <Label htmlFor="description">Descrição</Label>
                   <Textarea
                     id="description"
+                    name="description"
                     placeholder="Descreva as características, acabamentos, lazer, segurança..."
                     rows={5}
                     defaultValue={data.description ?? ""}
@@ -194,9 +225,10 @@ const EditProperty = () => {
                     <Label htmlFor="price">Preço</Label>
                     <Input
                       id="price"
-                      placeholder="Ex: 850000"
-                      type="number"
-                      defaultValue={String(data.price)}
+                      name="price"
+                      placeholder="R$ 0,00"
+                      value={price}
+                      onChange={handlePriceChange}
                       required
                     />
                   </div>
@@ -215,6 +247,7 @@ const EditProperty = () => {
                     <Label htmlFor="address">Endereço</Label>
                     <Input
                       id="address"
+                      name="address"
                       placeholder="Rua, número"
                       defaultValue={data.address ?? ""}
                       required
@@ -224,6 +257,7 @@ const EditProperty = () => {
                     <Label htmlFor="neighborhood">Bairro</Label>
                     <Input
                       id="neighborhood"
+                      name="neighborhood"
                       placeholder="Nome do bairro"
                       defaultValue={data.neighborhood ?? ""}
                       required
@@ -235,6 +269,7 @@ const EditProperty = () => {
                     <Label htmlFor="city">Cidade</Label>
                     <Input 
                       id="city" 
+                      name="city"
                       placeholder="Cidade" 
                       defaultValue={data.city ?? ""}
                       required 
@@ -244,6 +279,7 @@ const EditProperty = () => {
                     <Label htmlFor="state">Estado</Label>
                     <Input 
                       id="state" 
+                      name="state"
                       placeholder="UF" 
                       defaultValue={data.state ?? ""}
                       required 
@@ -259,11 +295,12 @@ const EditProperty = () => {
                 <CardTitle>Especificações</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="area">Área Útil (m²)</Label>
                     <Input
                       id="area"
+                      name="area"
                       type="number"
                       placeholder="120"
                       defaultValue={data.area ?? undefined}
@@ -274,6 +311,7 @@ const EditProperty = () => {
                     <Label htmlFor="bedrooms">Quartos</Label>
                     <Input 
                       id="bedrooms" 
+                      name="bedrooms"
                       type="number" 
                       placeholder="3"
                       defaultValue={data.bedrooms ?? undefined}
@@ -283,15 +321,27 @@ const EditProperty = () => {
                     <Label htmlFor="bathrooms">Banheiros</Label>
                     <Input 
                       id="bathrooms" 
+                      name="bathrooms"
                       type="number" 
                       placeholder="2"
                       defaultValue={data.bathrooms ?? undefined}
                     />
                   </div>
                   <div className="space-y-2">
+                    <Label htmlFor="suites">Suítes</Label>
+                    <Input 
+                      id="suites" 
+                      name="suites"
+                      type="number" 
+                      placeholder="1"
+                      defaultValue={data.suites ?? undefined}
+                    />
+                  </div>
+                  <div className="space-y-2">
                     <Label htmlFor="parking">Vagas</Label>
                     <Input 
                       id="parking" 
+                      name="parking"
                       type="number" 
                       placeholder="2"
                       defaultValue={data.parking ?? undefined}
@@ -328,6 +378,7 @@ const EditProperty = () => {
                     <Label htmlFor="floor">Andar</Label>
                     <Input 
                       id="floor" 
+                      name="floor"
                       placeholder="Ex: 5"
                       defaultValue={data.floor ?? undefined}
                     />
