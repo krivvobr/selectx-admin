@@ -4,16 +4,50 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { createNeighborhood, listCities, listNeighborhoodsByCity, type Neighborhood } from "@/services/locations";
+import {
+  createNeighborhood,
+  listCities,
+  listNeighborhoodsByCity,
+  type Neighborhood,
+  deleteNeighborhood,
+  updateNeighborhood,
+} from "@/services/locations";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useState } from "react";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/use-auth";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { MoreHorizontal } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 const Neighborhoods = () => {
   const qc = useQueryClient();
   const [cityId, setCityId] = useState<string>("");
   const { isAdmin } = useAuth();
+  const [isDeleteAlertOpen, setDeleteAlertOpen] = useState(false);
+  const [isEditModalOpen, setEditModalOpen] = useState(false);
+  const [selectedNeighborhood, setSelectedNeighborhood] = useState<Neighborhood | null>(null);
 
   const { data: cities = [], isLoading: loadingCities } = useQuery({
     queryKey: ["cities"],
@@ -39,6 +73,33 @@ const Neighborhoods = () => {
     },
   });
 
+  const { mutateAsync: removeNeighborhood } = useMutation({
+    mutationFn: async (id: string) => {
+      return await deleteNeighborhood(id);
+    },
+    onSuccess: () => {
+      toast.success("Bairro removido.");
+      qc.invalidateQueries({ queryKey: ["neighborhoods", cityId] });
+    },
+    onError: (err: any) => {
+      toast.error(err?.message ?? "Erro ao remover bairro.");
+    },
+  });
+
+  const { mutateAsync: editNeighborhood } = useMutation({
+    mutationFn: async (payload: { id: string; name: string }) => {
+      return await updateNeighborhood(payload.id, { name: payload.name });
+    },
+    onSuccess: () => {
+      toast.success("Bairro atualizado.");
+      qc.invalidateQueries({ queryKey: ["neighborhoods", cityId] });
+      setEditModalOpen(false);
+    },
+    onError: (err: any) => {
+      toast.error(err?.message ?? "Erro ao atualizar bairro.");
+    },
+  });
+
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!isAdmin) {
@@ -57,6 +118,28 @@ const Neighborhoods = () => {
     }
     await addNeighborhood({ city_id: cityId, name });
     (e.currentTarget as HTMLFormElement).reset();
+  };
+
+  const handleDelete = (neighborhood: Neighborhood) => {
+    setSelectedNeighborhood(neighborhood);
+    setDeleteAlertOpen(true);
+  };
+
+  const handleEdit = (neighborhood: Neighborhood) => {
+    setSelectedNeighborhood(neighborhood);
+    setEditModalOpen(true);
+  };
+
+  const handleEditSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    if (!selectedNeighborhood) return;
+    const fd = new FormData(e.currentTarget);
+    const name = String(fd.get("name") ?? "").trim();
+    if (!name) {
+      toast.error("Informe o nome do bairro.");
+      return;
+    }
+    await editNeighborhood({ id: selectedNeighborhood.id, name });
   };
 
   return (
@@ -109,6 +192,18 @@ const Neighborhoods = () => {
                 {neighborhoods.map((n: Neighborhood) => (
                   <li key={n.id} className="flex justify-between border rounded p-2">
                     <span>{n.name}</span>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" className="h-8 w-8 p-0" disabled={!isAdmin}>
+                          <span className="sr-only">Open menu</span>
+                          <MoreHorizontal className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem onClick={() => handleEdit(n)}>Editar</DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => handleDelete(n)}>Excluir</DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                   </li>
                 ))}
                 {neighborhoods.length === 0 && (
@@ -119,6 +214,40 @@ const Neighborhoods = () => {
           </CardContent>
         </Card>
       </div>
+
+      <AlertDialog open={isDeleteAlertOpen} onOpenChange={setDeleteAlertOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Você tem certeza?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Essa ação não pode ser desfeita. Isso excluirá permanentemente o bairro.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={() => selectedNeighborhood && removeNeighborhood(selectedNeighborhood.id)}>
+              Excluir
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <Dialog open={isEditModalOpen} onOpenChange={setEditModalOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Editar Bairro</DialogTitle>
+            <DialogDescription>
+              <form onSubmit={handleEditSubmit} className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="name">Nome do Bairro</Label>
+                  <Input id="name" name="name" defaultValue={selectedNeighborhood?.name} />
+                </div>
+                <Button type="submit">Salvar</Button>
+              </form>
+            </DialogDescription>
+          </DialogHeader>
+        </DialogContent>
+      </Dialog>
     </DashboardLayout>
   );
 };
