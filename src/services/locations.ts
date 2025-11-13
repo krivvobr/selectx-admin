@@ -19,6 +19,8 @@ export async function listCities() {
     .from("cities")
     .select("id, name, state")
     .order("name", { ascending: true });
+
+    console.log('citiesss logto',data, error);
   if (error) throw error;
   return (data ?? []) as City[];
 }

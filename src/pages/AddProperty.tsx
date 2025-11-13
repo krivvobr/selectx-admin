@@ -61,7 +61,7 @@ const generateRandomCode = () => {
 
 const AddProperty = () => {
   const navigate = useNavigate();
-  const { isAdmin } = useAuth();
+  const { isAdmin, session } = useAuth();
 
   const [type, setType] = useState<string>("");
   const [purpose, setPurpose] = useState<string>("");
@@ -97,6 +97,7 @@ const AddProperty = () => {
   const { data: cities = [], isLoading: loadingCities } = useQuery({
     queryKey: ["cities"],
     queryFn: () => listCities(),
+    enabled: !!session,
   });
 
   const { data: neighborhoods = [], isLoading: loadingNeighborhoods } = useQuery({

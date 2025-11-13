@@ -9,10 +9,13 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { listLeads, deleteLead } from "@/services/leads";
 import { useNavigate } from "react-router-dom";
 import { toast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/use-auth";
 
 const Leads = () => {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
+
+  const { session } = useAuth();
 
   const { data, isLoading } = useQuery({
     queryKey: ["leads"],
@@ -21,6 +24,7 @@ const Leads = () => {
       if (error) throw error;
       return data ?? [];
     },
+    enabled: !!session,
   });
 
   // Removido fluxo de "marcar contatado" conforme solicitação

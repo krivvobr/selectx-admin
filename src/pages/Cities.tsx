@@ -35,7 +35,7 @@ import { useState } from "react";
 
 const Cities = () => {
   const qc = useQueryClient();
-  const { isAdmin } = useAuth();
+  const { isAdmin, session } = useAuth();
   const [isDeleteAlertOpen, setDeleteAlertOpen] = useState(false);
   const [isEditModalOpen, setEditModalOpen] = useState(false);
   const [selectedCity, setSelectedCity] = useState<City | null>(null);
@@ -43,6 +43,7 @@ const Cities = () => {
   const { data: cities = [], isLoading } = useQuery({
     queryKey: ["cities"],
     queryFn: () => listCities(),
+    enabled: !!session,
   });
 
   const { mutateAsync: addCity, isPending } = useMutation({

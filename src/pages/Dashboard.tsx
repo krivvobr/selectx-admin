@@ -69,12 +69,14 @@ const Dashboard = () => {
     queryKey: ["properties-count"],
     queryFn: () => countProperties(),
     refetchOnMount: "always",
+    enabled: !!session,
   });
 
   const { data: leadsCount, isLoading: loadingLeadsCount } = useQuery({
     queryKey: ["leads-count"],
     queryFn: () => countLeads(),
     refetchOnMount: "always",
+    enabled: !!session,
   });
 
   const { data: recent, isLoading: loadingRecent } = useQuery({
@@ -85,6 +87,7 @@ const Dashboard = () => {
       return data ?? [];
     },
     refetchOnMount: "always",
+    enabled: !!session,
   });
 
   return (

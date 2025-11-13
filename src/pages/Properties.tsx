@@ -95,6 +95,7 @@ const Properties = () => {
     },
     retry: false,
     refetchOnMount: "always",
+    enabled: !!session,
   });
 
   const { mutateAsync: removeProperty, isLoading: deleting } = useMutation({
