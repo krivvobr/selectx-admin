@@ -90,6 +90,8 @@ const EditProperty = () => {
   const [images, setImages] = useState<string[]>([]);
   const [coverImage, setCoverImage] = useState<string>("");
 
+  const { session, loading } = useAuth();
+
   const { data: citiesData } = useQuery({
     queryKey: ["cities"],
     queryFn: async () => {
@@ -97,11 +99,12 @@ const EditProperty = () => {
       setCities(data);
       return data;
     },
+    enabled: !loading && !!session,
   });
 
   const { data, isLoading } = useQuery({
     queryKey: ["property", id],
-    enabled: !!id,
+    enabled: !loading && !!session && !!id,
     queryFn: async () => {
       const { data, error } = await getPropertyById(id!);
       if (error) throw error;
@@ -574,3 +577,4 @@ const EditProperty = () => {
 };
 
 export default EditProperty;
+import { useAuth } from "@/hooks/use-auth";

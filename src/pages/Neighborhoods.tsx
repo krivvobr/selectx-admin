@@ -44,7 +44,7 @@ import {
 const Neighborhoods = () => {
   const qc = useQueryClient();
   const [cityId, setCityId] = useState<string>("");
-  const { isAdmin, session } = useAuth();
+  const { isAdmin, session, loading } = useAuth();
   const [isDeleteAlertOpen, setDeleteAlertOpen] = useState(false);
   const [isEditModalOpen, setEditModalOpen] = useState(false);
   const [selectedNeighborhood, setSelectedNeighborhood] = useState<Neighborhood | null>(null);
@@ -52,7 +52,7 @@ const Neighborhoods = () => {
   const { data: cities = [], isLoading: loadingCities } = useQuery({
     queryKey: ["cities"],
     queryFn: () => listCities(),
-    enabled: !!session,
+    enabled: !loading && !!session,
   });
 
   const { data: neighborhoods = [], isLoading: loadingNeighborhoods } = useQuery({

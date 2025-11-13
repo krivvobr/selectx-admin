@@ -35,15 +35,15 @@ import { useState } from "react";
 
 const Cities = () => {
   const qc = useQueryClient();
-  const { isAdmin, session } = useAuth();
+  const { isAdmin, session, loading } = useAuth();
   const [isDeleteAlertOpen, setDeleteAlertOpen] = useState(false);
   const [isEditModalOpen, setEditModalOpen] = useState(false);
   const [selectedCity, setSelectedCity] = useState<City | null>(null);
 
-  const { data: cities = [], isLoading } = useQuery({
+  const { data: cities, isLoading } = useQuery({
     queryKey: ["cities"],
     queryFn: () => listCities(),
-    enabled: !!session,
+    enabled: !loading && !!session,
   });
 
   const { mutateAsync: addCity, isPending } = useMutation({
@@ -124,6 +124,8 @@ const Cities = () => {
     }
     await editCity({ id: selectedCity.id, name, state });
   };
+
+  console.log('cities page',cities)
 
   return (
     <DashboardLayout>

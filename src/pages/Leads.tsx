@@ -15,7 +15,7 @@ const Leads = () => {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
 
-  const { session } = useAuth();
+  const { session, loading } = useAuth();
 
   const { data, isLoading } = useQuery({
     queryKey: ["leads"],
@@ -24,7 +24,7 @@ const Leads = () => {
       if (error) throw error;
       return data ?? [];
     },
-    enabled: !!session,
+    enabled: !loading && !!session,
   });
 
   // Removido fluxo de "marcar contatado" conforme solicitação

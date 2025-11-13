@@ -84,7 +84,7 @@ function labelStatus(status?: Property["status"]) {
 const Properties = () => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const { session } = useAuth();
+  const { session, loading } = useAuth();
 
   const { data, isLoading, isError, error } = useQuery({
     queryKey: ["properties"],
@@ -95,7 +95,7 @@ const Properties = () => {
     },
     retry: false,
     refetchOnMount: "always",
-    enabled: !!session,
+    enabled: !loading && !!session,
   });
 
   const { mutateAsync: removeProperty, isLoading: deleting } = useMutation({

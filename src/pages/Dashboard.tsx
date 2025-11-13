@@ -60,7 +60,7 @@ const statusVariant = (status: string): "default" | "secondary" | "outline" => {
 
 const Dashboard = () => {
   const navigate = useNavigate();
-  const { session } = useAuth();
+  const { session, loading } = useAuth();
 
   const {
     data: propertiesCount,
@@ -69,14 +69,14 @@ const Dashboard = () => {
     queryKey: ["properties-count"],
     queryFn: () => countProperties(),
     refetchOnMount: "always",
-    enabled: !!session,
+    enabled: !loading && !!session,
   });
 
   const { data: leadsCount, isLoading: loadingLeadsCount } = useQuery({
     queryKey: ["leads-count"],
     queryFn: () => countLeads(),
     refetchOnMount: "always",
-    enabled: !!session,
+    enabled: !loading && !!session,
   });
 
   const { data: recent, isLoading: loadingRecent } = useQuery({
@@ -87,7 +87,7 @@ const Dashboard = () => {
       return data ?? [];
     },
     refetchOnMount: "always",
-    enabled: !!session,
+    enabled: !loading && !!session,
   });
 
   return (
