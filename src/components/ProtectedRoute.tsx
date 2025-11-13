@@ -5,7 +5,7 @@ import { useAuth } from "@/hooks/use-auth";
 const ProtectedRoute = ({ children }: { children: ReactNode }) => {
   const { session, loading } = useAuth();
 
-  if (!session && loading) {
+  if (loading) {
     return (
       <div className="flex min-h-screen items-center justify-center">
         <div className="text-muted-foreground">Carregando...</div>

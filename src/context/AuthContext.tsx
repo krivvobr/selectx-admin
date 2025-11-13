@@ -36,13 +36,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     const fetchSession = async () => {
       setLoading(true);
       try {
-        const timeoutMs = 8000;
-        const timeout = new Promise<null>((resolve) => setTimeout(() => resolve(null), timeoutMs));
-        const raced = await Promise.race([
-          supabase.auth.getSession().then((r) => r.data.session),
-          timeout,
-        ]);
-        await handleAuthStateChange(raced);
+        const current = await supabase.auth.getSession();
+        await handleAuthStateChange(current.data.session ?? null);
       } catch (_err) {
         setSession(null);
         setUser(null);

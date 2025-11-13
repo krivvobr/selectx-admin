@@ -13,4 +13,8 @@ const timedFetch: typeof fetch = (input, init) => {
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   global: { fetch: timedFetch },
+  auth: {
+    persistSession: true,
+    autoRefreshToken: true,
+  },
 });
