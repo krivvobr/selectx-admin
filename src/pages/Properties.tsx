@@ -93,8 +93,8 @@ const Properties = () => {
       if (error) throw error;
       return data as Property[];
     },
-    enabled: !!session,
     retry: false,
+    refetchOnMount: "always",
   });
 
   const { mutateAsync: removeProperty, isLoading: deleting } = useMutation({
